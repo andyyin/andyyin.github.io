@@ -10,10 +10,19 @@
              "@type": "WebPage",
              "@id": "https://andyyin.github.io"
         },
-        "articleSection" : "",
-        "name" : "涤生的博客",
-        "headline" : "涤生的博客",
-        "description" : "",
+        "articleSection" : "blog",
+        "name" : "JVM 源码解读之 CMS GC 触发条件",
+        "headline" : "JVM 源码解读之 CMS GC 触发条件",
+        "description" : "前言 经常有同学会问，为啥我的应用 Old Gen 没到 CMSInitiatingOccupancyFraction 参数配置的阈值，就触发了 CMS GC，表示很莫名奇妙，不知道问题出在哪？
+其实 CMS GC 的触发条件非常多，不只是 CMSInitiatingOccupancyFraction 阈值触发这么简单。本文通过源码全面梳理了触发 CMS GC 的条件，尽可能的帮你了解平时遇到的奇奇怪怪的 CMS GC 问题。
+先抛出一些问题，来吸引你的注意力。
+ 为什么 Old Gen 使用占比仅 50% 就进行了一次 CMS GC？
+Metaspace 的使用也会触发 CMS GC 吗？
+为什么 Old Gen 使用占比非常小就进行了一次 CMS GC？
+ 触发条件 CMS GC 在实现上分成 foreground collector 和 background collector。foreground collector 相对比较简单，background collector 比较复杂，情况比较多。
+下面我们从 foreground collector 和 background collector 分别来说明他们的触发条件：
+ 说明：本文内容是基于 JDK 8
+说明：本文仅涉及 CMS GC 的触发条件，至于算法的具体过程，以及什么时候进行 MSC（mark sweep compact）不在本文范围",
         "inLanguage" : "zh",
         "author" : "",
         "creator" : "",
@@ -23,14 +32,14 @@
         "copyrightYear" : "2019",
         "datePublished": "2019-06-07 00:00:00 &#43;0000 UTC",
         "dateModified" : "2019-06-07 00:00:00 &#43;0000 UTC",
-        "url" : "https://andyyin.github.io/",
-        "wordCount" : "0",
-        "keywords" : [ "Blog" ]
+        "url" : "https://andyyin.github.io/blog/jvm-%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB%E4%B9%8B-cms-gc-%E8%A7%A6%E5%8F%91%E6%9D%A1%E4%BB%B6/",
+        "wordCount" : "1198",
+        "keywords" : [ "Java","JVM","GC","CMS GC","backgroud collector","foreground collector","Blog" ]
     }
     </script>
         
             
-                <title>涤生的博客</title>
+                <title>JVM 源码解读之 CMS GC 触发条件</title>
             
         
 
@@ -41,6 +50,8 @@
 
 
         
+            <meta name="author" content="涤生">
+        
         
             
                 <meta name="description" content="涤生的博客，主要分享 Java、JVM、中间件、架构设计、性能优化、Linux 底层技术等，欢迎支持加关注">
@@ -48,24 +59,59 @@
         
 
         <meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="涤生的博客"/>
-<meta name="twitter:description" content="涤生的博客，主要分享 Java、JVM、中间件、架构设计、性能优化、Linux 底层技术等，欢迎支持加关注"/>
+<meta name="twitter:title" content="JVM 源码解读之 CMS GC 触发条件"/>
+<meta name="twitter:description" content="前言 经常有同学会问，为啥我的应用 Old Gen 没到 CMSInitiatingOccupancyFraction 参数配置的阈值，就触发了 CMS GC，表示很莫名奇妙，不知道问题出在哪？
+其实 CMS GC 的触发条件非常多，不只是 CMSInitiatingOccupancyFraction 阈值触发这么简单。本文通过源码全面梳理了触发 CMS GC 的条件，尽可能的帮你了解平时遇到的奇奇怪怪的 CMS GC 问题。
+先抛出一些问题，来吸引你的注意力。
+ 为什么 Old Gen 使用占比仅 50% 就进行了一次 CMS GC？
+Metaspace 的使用也会触发 CMS GC 吗？
+为什么 Old Gen 使用占比非常小就进行了一次 CMS GC？
+ 触发条件 CMS GC 在实现上分成 foreground collector 和 background collector。foreground collector 相对比较简单，background collector 比较复杂，情况比较多。
+下面我们从 foreground collector 和 background collector 分别来说明他们的触发条件：
+ 说明：本文内容是基于 JDK 8
+说明：本文仅涉及 CMS GC 的触发条件，至于算法的具体过程，以及什么时候进行 MSC（mark sweep compact）不在本文范围"/>
 
-        <meta property="og:title" content="涤生的博客" />
-<meta property="og:description" content="涤生的博客，主要分享 Java、JVM、中间件、架构设计、性能优化、Linux 底层技术等，欢迎支持加关注" />
-<meta property="og:type" content="website" />
-<meta property="og:url" content="https://andyyin.github.io/" />
-
-<meta property="og:updated_time" content="2019-06-07T00:00:00&#43;00:00"/>
+        <meta property="og:title" content="JVM 源码解读之 CMS GC 触发条件" />
+<meta property="og:description" content="前言 经常有同学会问，为啥我的应用 Old Gen 没到 CMSInitiatingOccupancyFraction 参数配置的阈值，就触发了 CMS GC，表示很莫名奇妙，不知道问题出在哪？
+其实 CMS GC 的触发条件非常多，不只是 CMSInitiatingOccupancyFraction 阈值触发这么简单。本文通过源码全面梳理了触发 CMS GC 的条件，尽可能的帮你了解平时遇到的奇奇怪怪的 CMS GC 问题。
+先抛出一些问题，来吸引你的注意力。
+ 为什么 Old Gen 使用占比仅 50% 就进行了一次 CMS GC？
+Metaspace 的使用也会触发 CMS GC 吗？
+为什么 Old Gen 使用占比非常小就进行了一次 CMS GC？
+ 触发条件 CMS GC 在实现上分成 foreground collector 和 background collector。foreground collector 相对比较简单，background collector 比较复杂，情况比较多。
+下面我们从 foreground collector 和 background collector 分别来说明他们的触发条件：
+ 说明：本文内容是基于 JDK 8
+说明：本文仅涉及 CMS GC 的触发条件，至于算法的具体过程，以及什么时候进行 MSC（mark sweep compact）不在本文范围" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://andyyin.github.io/blog/jvm-%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB%E4%B9%8B-cms-gc-%E8%A7%A6%E5%8F%91%E6%9D%A1%E4%BB%B6/" />
+<meta property="article:published_time" content="2019-06-07T00:00:00&#43;00:00"/>
+<meta property="article:modified_time" content="2019-06-07T00:00:00&#43;00:00"/>
 
         <meta property="og:image" content="https://andyyin.github.io/images/logo.png">
         <meta property="og:image:type" content="image/png">
         <meta property="og:image:width" content="512">
         <meta property="og:image:height" content="512">
         
-<meta itemprop="name" content="涤生的博客">
-<meta itemprop="description" content="涤生的博客，主要分享 Java、JVM、中间件、架构设计、性能优化、Linux 底层技术等，欢迎支持加关注">
+<meta itemprop="name" content="JVM 源码解读之 CMS GC 触发条件">
+<meta itemprop="description" content="前言 经常有同学会问，为啥我的应用 Old Gen 没到 CMSInitiatingOccupancyFraction 参数配置的阈值，就触发了 CMS GC，表示很莫名奇妙，不知道问题出在哪？
+其实 CMS GC 的触发条件非常多，不只是 CMSInitiatingOccupancyFraction 阈值触发这么简单。本文通过源码全面梳理了触发 CMS GC 的条件，尽可能的帮你了解平时遇到的奇奇怪怪的 CMS GC 问题。
+先抛出一些问题，来吸引你的注意力。
+ 为什么 Old Gen 使用占比仅 50% 就进行了一次 CMS GC？
+Metaspace 的使用也会触发 CMS GC 吗？
+为什么 Old Gen 使用占比非常小就进行了一次 CMS GC？
+ 触发条件 CMS GC 在实现上分成 foreground collector 和 background collector。foreground collector 相对比较简单，background collector 比较复杂，情况比较多。
+下面我们从 foreground collector 和 background collector 分别来说明他们的触发条件：
+ 说明：本文内容是基于 JDK 8
+说明：本文仅涉及 CMS GC 的触发条件，至于算法的具体过程，以及什么时候进行 MSC（mark sweep compact）不在本文范围">
 
+
+<meta itemprop="datePublished" content="2019-06-07T00:00:00&#43;00:00" />
+<meta itemprop="dateModified" content="2019-06-07T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="1198">
+
+
+
+<meta itemprop="keywords" content="Java,JVM,GC,CMS GC,backgroud collector,foreground collector," />
 
         
 
@@ -313,15 +359,109 @@
         
 </section>
 
+    <section id="share-menu">
+    <section id="social-share-nav">
+        <ul class="links">
+            <header>
+                <h3>Share this post <i class="fa fa-smile-o"></i></h3>
+            </header>
+            
+
+
+
+<li>
+  <a href="//twitter.com/share?url=https%3a%2f%2fandyyin.github.io%2fblog%2fjvm-%25E6%25BA%2590%25E7%25A0%2581%25E8%25A7%25A3%25E8%25AF%25BB%25E4%25B9%258B-cms-gc-%25E8%25A7%25A6%25E5%258F%2591%25E6%259D%25A1%25E4%25BB%25B6%2f&amp;text=JVM%20%e6%ba%90%e7%a0%81%e8%a7%a3%e8%af%bb%e4%b9%8b%20CMS%20GC%20%e8%a7%a6%e5%8f%91%e6%9d%a1%e4%bb%b6&amp;via=" target="_blank" class="share-btn twitter">
+    <i class="fa fa-twitter"></i>
+    <p>Twitter</p>
+    </a>
+</li>
+
+
+
+
+<li>
+  <a href="//plus.google.com/share?url=https%3a%2f%2fandyyin.github.io%2fblog%2fjvm-%25E6%25BA%2590%25E7%25A0%2581%25E8%25A7%25A3%25E8%25AF%25BB%25E4%25B9%258B-cms-gc-%25E8%25A7%25A6%25E5%258F%2591%25E6%259D%25A1%25E4%25BB%25B6%2f" target="_blank" class="share-btn google-plus">
+    <i class="fa fa-google-plus"></i>
+    <p>Google+</p>
+  </a>
+</li>
+
+
+
+
+
+<li>
+  <a href="//www.facebook.com/sharer/sharer.php?u=https%3a%2f%2fandyyin.github.io%2fblog%2fjvm-%25E6%25BA%2590%25E7%25A0%2581%25E8%25A7%25A3%25E8%25AF%25BB%25E4%25B9%258B-cms-gc-%25E8%25A7%25A6%25E5%258F%2591%25E6%259D%25A1%25E4%25BB%25B6%2f" target="_blank" class="share-btn facebook">
+    <i class="fa fa-facebook"></i>
+    <p>Facebook</p>
+    </a>
+</li>
+
+
+
+
+<li>
+  <a href="//reddit.com/submit?url=https%3a%2f%2fandyyin.github.io%2fblog%2fjvm-%25E6%25BA%2590%25E7%25A0%2581%25E8%25A7%25A3%25E8%25AF%25BB%25E4%25B9%258B-cms-gc-%25E8%25A7%25A6%25E5%258F%2591%25E6%259D%25A1%25E4%25BB%25B6%2f&amp;title=JVM%20%e6%ba%90%e7%a0%81%e8%a7%a3%e8%af%bb%e4%b9%8b%20CMS%20GC%20%e8%a7%a6%e5%8f%91%e6%9d%a1%e4%bb%b6" target="_blank" class="share-btn reddit">
+    <i class="fa fa-reddit-alien"></i>
+    <p>Reddit</p>
+  </a>
+</li>
+
+
+
+
+<li>
+  <a href="//www.linkedin.com/shareArticle?url=https%3a%2f%2fandyyin.github.io%2fblog%2fjvm-%25E6%25BA%2590%25E7%25A0%2581%25E8%25A7%25A3%25E8%25AF%25BB%25E4%25B9%258B-cms-gc-%25E8%25A7%25A6%25E5%258F%2591%25E6%259D%25A1%25E4%25BB%25B6%2f&amp;title=JVM%20%e6%ba%90%e7%a0%81%e8%a7%a3%e8%af%bb%e4%b9%8b%20CMS%20GC%20%e8%a7%a6%e5%8f%91%e6%9d%a1%e4%bb%b6" target="_blank" class="share-btn linkedin">
+      <i class="fa fa-linkedin"></i>
+      <p>LinkedIn</p>
+    </a>
+</li>
+
+
+
+
+<li>
+  <a href="//www.stumbleupon.com/submit?url=https%3a%2f%2fandyyin.github.io%2fblog%2fjvm-%25E6%25BA%2590%25E7%25A0%2581%25E8%25A7%25A3%25E8%25AF%25BB%25E4%25B9%258B-cms-gc-%25E8%25A7%25A6%25E5%258F%2591%25E6%259D%25A1%25E4%25BB%25B6%2f&amp;title=JVM%20%e6%ba%90%e7%a0%81%e8%a7%a3%e8%af%bb%e4%b9%8b%20CMS%20GC%20%e8%a7%a6%e5%8f%91%e6%9d%a1%e4%bb%b6" target="_blank" class="share-btn stumbleupon">
+    <i class="fa fa-stumbleupon"></i>
+    <p>StumbleUpon</p>
+  </a>
+</li>
+
+
+
+
+<li>
+  <a href="//www.pinterest.com/pin/create/button/?url=https%3a%2f%2fandyyin.github.io%2fblog%2fjvm-%25E6%25BA%2590%25E7%25A0%2581%25E8%25A7%25A3%25E8%25AF%25BB%25E4%25B9%258B-cms-gc-%25E8%25A7%25A6%25E5%258F%2591%25E6%259D%25A1%25E4%25BB%25B6%2f&amp;description=JVM%20%e6%ba%90%e7%a0%81%e8%a7%a3%e8%af%bb%e4%b9%8b%20CMS%20GC%20%e8%a7%a6%e5%8f%91%e6%9d%a1%e4%bb%b6" target="_blank" class="share-btn pinterest">
+    <i class="fa fa-pinterest-p"></i>
+    <p>Pinterest</p>
+  </a>
+</li>
+
+
+
+
+<li>
+  <a href="mailto:?subject=Check out this post by %e6%b6%a4%e7%94%9f&amp;body=https%3a%2f%2fandyyin.github.io%2fblog%2fjvm-%25E6%25BA%2590%25E7%25A0%2581%25E8%25A7%25A3%25E8%25AF%25BB%25E4%25B9%258B-cms-gc-%25E8%25A7%25A6%25E5%258F%2591%25E6%259D%25A1%25E4%25BB%25B6%2f" target="_blank" class="share-btn email">
+    <i class="fa fa-envelope"></i>
+    <p>Email</p>
+  </a>
+</li>
+
+
+        </ul>
+    </section>
+</section>
+
     
     <div id="main">
-           
         
-            <article class="post">
+        
+        <article class="post">
   <header>
     <div class="title">
         
-            <h2><a href="https://andyyin.github.io/blog/jvm-%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB%E4%B9%8B-cms-gc-%E8%A7%A6%E5%8F%91%E6%9D%A1%E4%BB%B6/">JVM 源码解读之 CMS GC 触发条件</a></h2>
+            <h1><a href="https://andyyin.github.io/blog/jvm-%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB%E4%B9%8B-cms-gc-%E8%A7%A6%E5%8F%91%E6%9D%A1%E4%BB%B6/">JVM 源码解读之 CMS GC 触发条件</a></h1>
+            
         
         
     </div>
@@ -780,101 +920,6 @@ bool   res = (available &gt;= av_promo) || (available &gt;= max_promotion_in_byt
 </ul>
 
 
-
-            <section id="share-menu">
-    <section id="social-share-nav">
-        <ul class="links">
-            <header>
-                <h3>Share this post <i class="fa fa-smile-o"></i></h3>
-            </header>
-            
-
-
-
-<li>
-  <a href="//twitter.com/share?url=https%3a%2f%2fandyyin.github.io%2fblog%2fjvm-%25E6%25BA%2590%25E7%25A0%2581%25E8%25A7%25A3%25E8%25AF%25BB%25E4%25B9%258B-cms-gc-%25E8%25A7%25A6%25E5%258F%2591%25E6%259D%25A1%25E4%25BB%25B6%2f&amp;text=JVM%20%e6%ba%90%e7%a0%81%e8%a7%a3%e8%af%bb%e4%b9%8b%20CMS%20GC%20%e8%a7%a6%e5%8f%91%e6%9d%a1%e4%bb%b6&amp;via=" target="_blank" class="share-btn twitter">
-    <i class="fa fa-twitter"></i>
-    <p>Twitter</p>
-    </a>
-</li>
-
-
-
-
-<li>
-  <a href="//plus.google.com/share?url=https%3a%2f%2fandyyin.github.io%2fblog%2fjvm-%25E6%25BA%2590%25E7%25A0%2581%25E8%25A7%25A3%25E8%25AF%25BB%25E4%25B9%258B-cms-gc-%25E8%25A7%25A6%25E5%258F%2591%25E6%259D%25A1%25E4%25BB%25B6%2f" target="_blank" class="share-btn google-plus">
-    <i class="fa fa-google-plus"></i>
-    <p>Google+</p>
-  </a>
-</li>
-
-
-
-
-
-<li>
-  <a href="//www.facebook.com/sharer/sharer.php?u=https%3a%2f%2fandyyin.github.io%2fblog%2fjvm-%25E6%25BA%2590%25E7%25A0%2581%25E8%25A7%25A3%25E8%25AF%25BB%25E4%25B9%258B-cms-gc-%25E8%25A7%25A6%25E5%258F%2591%25E6%259D%25A1%25E4%25BB%25B6%2f" target="_blank" class="share-btn facebook">
-    <i class="fa fa-facebook"></i>
-    <p>Facebook</p>
-    </a>
-</li>
-
-
-
-
-<li>
-  <a href="//reddit.com/submit?url=https%3a%2f%2fandyyin.github.io%2fblog%2fjvm-%25E6%25BA%2590%25E7%25A0%2581%25E8%25A7%25A3%25E8%25AF%25BB%25E4%25B9%258B-cms-gc-%25E8%25A7%25A6%25E5%258F%2591%25E6%259D%25A1%25E4%25BB%25B6%2f&amp;title=JVM%20%e6%ba%90%e7%a0%81%e8%a7%a3%e8%af%bb%e4%b9%8b%20CMS%20GC%20%e8%a7%a6%e5%8f%91%e6%9d%a1%e4%bb%b6" target="_blank" class="share-btn reddit">
-    <i class="fa fa-reddit-alien"></i>
-    <p>Reddit</p>
-  </a>
-</li>
-
-
-
-
-<li>
-  <a href="//www.linkedin.com/shareArticle?url=https%3a%2f%2fandyyin.github.io%2fblog%2fjvm-%25E6%25BA%2590%25E7%25A0%2581%25E8%25A7%25A3%25E8%25AF%25BB%25E4%25B9%258B-cms-gc-%25E8%25A7%25A6%25E5%258F%2591%25E6%259D%25A1%25E4%25BB%25B6%2f&amp;title=JVM%20%e6%ba%90%e7%a0%81%e8%a7%a3%e8%af%bb%e4%b9%8b%20CMS%20GC%20%e8%a7%a6%e5%8f%91%e6%9d%a1%e4%bb%b6" target="_blank" class="share-btn linkedin">
-      <i class="fa fa-linkedin"></i>
-      <p>LinkedIn</p>
-    </a>
-</li>
-
-
-
-
-<li>
-  <a href="//www.stumbleupon.com/submit?url=https%3a%2f%2fandyyin.github.io%2fblog%2fjvm-%25E6%25BA%2590%25E7%25A0%2581%25E8%25A7%25A3%25E8%25AF%25BB%25E4%25B9%258B-cms-gc-%25E8%25A7%25A6%25E5%258F%2591%25E6%259D%25A1%25E4%25BB%25B6%2f&amp;title=JVM%20%e6%ba%90%e7%a0%81%e8%a7%a3%e8%af%bb%e4%b9%8b%20CMS%20GC%20%e8%a7%a6%e5%8f%91%e6%9d%a1%e4%bb%b6" target="_blank" class="share-btn stumbleupon">
-    <i class="fa fa-stumbleupon"></i>
-    <p>StumbleUpon</p>
-  </a>
-</li>
-
-
-
-
-<li>
-  <a href="//www.pinterest.com/pin/create/button/?url=https%3a%2f%2fandyyin.github.io%2fblog%2fjvm-%25E6%25BA%2590%25E7%25A0%2581%25E8%25A7%25A3%25E8%25AF%25BB%25E4%25B9%258B-cms-gc-%25E8%25A7%25A6%25E5%258F%2591%25E6%259D%25A1%25E4%25BB%25B6%2f&amp;description=JVM%20%e6%ba%90%e7%a0%81%e8%a7%a3%e8%af%bb%e4%b9%8b%20CMS%20GC%20%e8%a7%a6%e5%8f%91%e6%9d%a1%e4%bb%b6" target="_blank" class="share-btn pinterest">
-    <i class="fa fa-pinterest-p"></i>
-    <p>Pinterest</p>
-  </a>
-</li>
-
-
-
-
-<li>
-  <a href="mailto:?subject=Check out this post by %e6%b6%a4%e7%94%9f&amp;body=https%3a%2f%2fandyyin.github.io%2fblog%2fjvm-%25E6%25BA%2590%25E7%25A0%2581%25E8%25A7%25A3%25E8%25AF%25BB%25E4%25B9%258B-cms-gc-%25E8%25A7%25A6%25E5%258F%2591%25E6%259D%25A1%25E4%25BB%25B6%2f" target="_blank" class="share-btn email">
-    <i class="fa fa-envelope"></i>
-    <p>Email</p>
-  </a>
-</li>
-
-
-        </ul>
-    </section>
-</section>
-
-        
     </div>
     
 <section id="sidebar">
@@ -1333,7 +1378,4 @@ src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML">
 
   </body>
 </html>
-
-
-
 
