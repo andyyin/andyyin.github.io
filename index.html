@@ -333,7 +333,7 @@
             2019-06-07</time>
         <span class="author">涤生</span>
         
-            <p>6 分钟阅读</p>
+            <p>7 分钟阅读</p>
         
         
     </div>
@@ -349,7 +349,7 @@
 
 <h1 id="前言">前言</h1>
 
-<p>经常有同学会问，为啥我的应用 Old Gen 没到 CMSInitiatingOccupancyFraction 参数配置的阈值，就触发了 CMS GC，表示很莫名奇妙，不知道问题出在哪？</p>
+<p>经常有同学会问，为啥我的应用 Old Gen 的使用占比没达到 CMSInitiatingOccupancyFraction 参数配置的阈值，就触发了 CMS GC，表示很莫名奇妙，不知道问题出在哪？</p>
 
 <p>其实 CMS GC 的触发条件非常多，不只是 CMSInitiatingOccupancyFraction 阈值触发这么简单。本文通过源码全面梳理了触发 CMS GC 的条件，尽可能的帮你了解平时遇到的奇奇怪怪的 CMS GC 问题。</p>
 
@@ -542,13 +542,23 @@
 }
 </code></pre>
 
-<p>上述代码可知，从大类上分 background collector 一共有 5 种触发情况：</p>
+<p>上述代码可知，从大类上分， background collector 一共有 5 种触发情况：</p>
 
 <ul>
 <li>是否是并行 Full GC</li>
 </ul>
 
-<p>指的是在 GC cause 是 _gc_locker 且配置了 GCLockerInvokesConcurrent 参数, 或者 GC cause 是_java_lang_system_gc（就是 System.gc()调用）and 且配置了 ExplicitGCInvokesConcurrent 参数，这是会触发一次 background collector。</p>
+<pre><code>// 第一种触发情况
+  if (_full_gc_requested) {
+    if (Verbose &amp;&amp; PrintGCDetails) {
+      gclog_or_tty-&gt;print_cr(&quot;CMSCollector: collect because of explicit &quot;
+                             &quot; gc request (or gc_locker)&quot;);
+    }
+    return true;
+  }
+</code></pre>
+
+<p>指的是在 GC cause 是 _gc_locker 且配置了 GCLockerInvokesConcurrent 参数，或者 GC cause 是_java_lang_system_gc（就是 System.gc()调用）and 且配置了 ExplicitGCInvokesConcurrent 参数，这时会触发一次 background collector。</p>
 
 <ul>
 <li>根据统计数据动态计算（仅未配置 UseCMSInitiatingOccupancyOnly 时）</li>
@@ -557,9 +567,10 @@
 <p>未配置 UseCMSInitiatingOccupancyOnly 时，会根据统计数据动态判断是否需要进行一次 CMS GC。</p>
 
 <p>判断逻辑是，如果预测 CMS GC 完成所需要的时间大于预计的老年代将要填满的时间，则进行 GC。
-这些判断是需要基于历史的 CMS GC 指标，然而，第一次 CMS GC 时，统计数据还没有形成是无效的，这时会跟据 Old Gen 的使用占比来进行判断是否要进行 GC。</p>
+这些判断是需要基于历史的 CMS GC 统计指标，然而，第一次 CMS GC 时，统计数据还没有形成，是无效的，这时会跟据 Old Gen 的使用占比来进行判断是否要进行 GC。</p>
 
-<pre><code>if (!UseCMSInitiatingOccupancyOnly) {
+<pre><code>// 第二种触发情况
+if (!UseCMSInitiatingOccupancyOnly) {
     if (stats().valid()) {
       if (stats().time_until_cms_start() == 0.0) {
         return true;
@@ -596,6 +607,20 @@
 <li>根据 Old Gen 情况判断</li>
 </ul>
 
+<pre><code>  // 第三种触发情况
+  // Otherwise, we start a collection cycle if
+  // old gen want a collection cycle started. Each may use
+  // an appropriate criterion for making this decision.
+  // XXX We need to make sure that the gen expansion
+  // criterion dovetails well with this. XXX NEED TO FIX THIS
+  if (_cmsGen-&gt;should_concurrent_collect()) {
+    if (Verbose &amp;&amp; PrintGCDetails) {
+      gclog_or_tty-&gt;print_cr(&quot;CMS old gen initiated&quot;);
+    }
+    return true;
+  }
+</code></pre>
+
 <pre><code>bool ConcurrentMarkSweepGeneration::should_concurrent_collect() const {
   assert_lock_strong(freelistLock());
   if (occupancy() &gt; initiating_occupancy()) {
@@ -630,7 +655,7 @@
 
 <p>(1) Old Gen 空间使用占比情况与阈值比较，如果大于阈值则进行 CMS GC</p>
 
-<p>&ldquo;occupancy() &gt; initiating_occupancy()&ldquo;，occupancy 毫无疑问是 Old Gen 当前空间的使用占比，而 initiating_occupancy 是多少呢？</p>
+<p>也就是 &ldquo;occupancy() &gt; initiating_occupancy()&ldquo;这个判断，其中 occupancy 毫无疑问是 Old Gen 当前空间的使用占比，而 initiating_occupancy 是多少呢？</p>
 
 <pre><code> _cmsGen -&gt;init_initiating_occupancy(CMSInitiatingOccupancyFraction, CMSTriggerRatio);
  ...
@@ -664,6 +689,21 @@
 <li>根据增量 GC 是否可能会失败（悲观策略）</li>
 </ul>
 
+<pre><code>  // 第四种触发情况
+  // We start a collection if we believe an incremental collection may fail;
+  // this is not likely to be productive in practice because it's probably too
+  // late anyway.
+  GenCollectedHeap* gch = GenCollectedHeap::heap();
+  assert(gch-&gt;collector_policy()-&gt;is_two_generation_policy(),
+         &quot;You may want to check the correctness of the following&quot;);
+  if (gch-&gt;incremental_collection_will_fail(true /* consult_young */)) {
+    if (Verbose &amp;&amp; PrintGCDetails) {
+      gclog_or_tty-&gt;print(&quot;CMSCollector: collect because incremental collection will fail &quot;);
+    }
+    return true;
+  }
+</code></pre>
+
 <p>什么意思呢？两代的 GC 体系中，主要指的是 Young GC 是否会失败。如果 Young GC 已经失败或者可能会失败，JVM 就认为需要进行一次 CMS GC。</p>
 
 <pre><code>  bool incremental_collection_will_fail(bool consult_young) {
@@ -677,10 +717,11 @@
   }
 </code></pre>
 
-<p>我们看两个判断条件，“incremental_collection_failed()” 和 “!get_gen(0)-&gt;collection_attempt_is_safe()”
-incremental_collection_failed() 这里指的是 Young GC 已经失败，至于为什么会失败一般是因为 Old Gen 没有足够的空间来容纳晋升的对象。</p>
+<p>我们看两个判断条件，“incremental_collection_failed()” 和 “!get_gen(0)-&gt;collection_attempt_is_safe()”，其中任何一个通过，都会进行一次 CMS GC。</p>
 
-<p>!get_gen(0)-&gt;collection_attempt_is_safe() 指的是新生代晋升是否安全。
+<p>incremental_collection_failed() 这里指的是 Young GC 已经失败，至于为什么会失败一般是因为 Old Gen 没有足够的空间来容纳晋升的对象。</p>
+
+<p>!get_gen(0)-&gt;collection_attempt_is_safe() 指的是 Young GC 晋升是否安全。
 通过判断当前 Old Gen 剩余的空间大小是否足够容纳 Young GC 晋升的对象大小。
 Young GC 到底要晋升多少是无法提前知道的，因此，这里通过统计平均每次 Young GC 晋升的大小和当前 Young GC 可能晋升的最大大小来进行比较。</p>
 
@@ -691,6 +732,15 @@ bool   res = (available &gt;= av_promo) || (available &gt;= max_promotion_in_byt
 <ul>
 <li>根据 meta space 情况判断</li>
 </ul>
+
+<pre><code>  // 第五种触发情况
+  if (MetaspaceGC::should_concurrent_collect()) {
+      if (Verbose &amp;&amp; PrintGCDetails) {
+      gclog_or_tty-&gt;print(&quot;CMSCollector: collect for metadata allocation &quot;);
+      }
+      return true;
+    }
+</code></pre>
 
 <p>这里主要看 metaspace 的 _should_concurrent_collect 标志，这个标志在 meta space 进行扩容前如果配置了 CMSClassUnloadingEnabled 参数时，会进行设置。
 这种情况下就会进行一次 CMS GC。因此经常会有应用启动不久，Old Gen 空间占比还很小的情况下，进行了一次 CMS GC，让你很莫名其妙，其实就是这个原因导致的。</p>
