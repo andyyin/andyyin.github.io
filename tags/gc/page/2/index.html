@@ -19,8 +19,8 @@
              "@id": "https://andyyin.github.io"
         },
         "articleSection" : "tags",
-        "name" : "foreground collector",
-        "headline" : "foreground collector",
+        "name" : "GC",
+        "headline" : "GC",
         "description" : "",
         "inLanguage" : "zh",
         "author" : "",
@@ -28,16 +28,16 @@
         "publisher": "",
         "accountablePerson" : "",
         "copyrightHolder" : "",
-        "copyrightYear" : "2019",
-        "datePublished": "2019-06-15 00:00:00 &#43;0000 UTC",
-        "dateModified" : "2019-06-15 00:00:00 &#43;0000 UTC",
-        "url" : "https://andyyin.github.io/tags/foreground-collector/",
+        "copyrightYear" : "2017",
+        "datePublished": "2017-04-13 00:00:00 &#43;0000 UTC",
+        "dateModified" : "2017-04-13 00:00:00 &#43;0000 UTC",
+        "url" : "https://andyyin.github.io/tags/gc/",
         "wordCount" : "0",
         "keywords" : [ "Blog" ]
     }
     </script>
         
-            <title>foreground collector - 涤生的博客</title>
+            <title>GC - 涤生的博客</title>
         
 
         <meta charset="utf-8" />
@@ -54,22 +54,22 @@
         
 
         <meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="foreground collector"/>
+<meta name="twitter:title" content="GC"/>
 <meta name="twitter:description" content="涤生的博客，主要分享 Java、JVM、中间件、架构设计、性能优化、Linux 底层技术等，欢迎支持加关注。涤生，姓名殷琦，目前就职于某大型互联网公司基础架构部，主要负责微服务框架、服务治理、Serverless 相关工作。 《高可用可伸缩微服务架构：基于Dubbo、Spring Cloud和Service Mesh》的作者之一，《Knative 入门》图书翻译之一。"/>
 
-        <meta property="og:title" content="foreground collector" />
+        <meta property="og:title" content="GC" />
 <meta property="og:description" content="涤生的博客，主要分享 Java、JVM、中间件、架构设计、性能优化、Linux 底层技术等，欢迎支持加关注。涤生，姓名殷琦，目前就职于某大型互联网公司基础架构部，主要负责微服务框架、服务治理、Serverless 相关工作。 《高可用可伸缩微服务架构：基于Dubbo、Spring Cloud和Service Mesh》的作者之一，《Knative 入门》图书翻译之一。" />
 <meta property="og:type" content="website" />
-<meta property="og:url" content="https://andyyin.github.io/tags/foreground-collector/" />
+<meta property="og:url" content="https://andyyin.github.io/tags/gc/" />
 
-<meta property="og:updated_time" content="2019-06-15T00:00:00&#43;00:00"/>
+<meta property="og:updated_time" content="2017-04-13T00:00:00&#43;00:00"/>
 
         <meta property="og:image" content="https://andyyin.github.io/images/logo.png">
         <meta property="og:image:type" content="image/png">
         <meta property="og:image:width" content="512">
         <meta property="og:image:height" content="512">
         
-<meta itemprop="name" content="foreground collector">
+<meta itemprop="name" content="GC">
 <meta itemprop="description" content="涤生的博客，主要分享 Java、JVM、中间件、架构设计、性能优化、Linux 底层技术等，欢迎支持加关注。涤生，姓名殷琦，目前就职于某大型互联网公司基础架构部，主要负责微服务框架、服务治理、Serverless 相关工作。 《高可用可伸缩微服务架构：基于Dubbo、Spring Cloud和Service Mesh》的作者之一，《Knative 入门》图书翻译之一。">
 
 
@@ -316,14 +316,14 @@
 
     
     <div id="main">
-        <h1>foreground collector</h1>
+        <h1>GC</h1>
         
         
             <article class="post">
   <header>
     <div class="title">
         
-            <h2><a href="https://andyyin.github.io/blog/jvm-%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB%E4%B9%8B-cms-%E4%BD%95%E6%97%B6%E4%BC%9A%E5%8F%98%E6%88%90-full-gc/">JVM 源码解读之 CMS 何时会变成 Full GC</a></h2>
+            <h2><a href="https://andyyin.github.io/blog/java-%E5%A0%86%E5%A4%96%E5%86%85%E5%AD%98%E5%9B%9E%E6%94%B6%E5%8E%9F%E7%90%86/">Java 堆外内存回收原理</a></h2>
         
         
     </div>
@@ -331,11 +331,11 @@
         
 
         <time class="published"
-            datetime='2019-06-15'>
-            2019-06-15</time>
+            datetime='2017-04-13'>
+            2017-04-13</time>
         <span class="author">涤生</span>
         
-            <p>3 分钟阅读</p>
+            <p>5 分钟阅读</p>
         
         
     </div>
@@ -344,11 +344,10 @@
   
 
   
-  <p>在文章 <a href="https://andyyin.github.io/blog/jvm-源码解读之-cms-gc-触发条件">JVM 源码解读之 CMS GC 触发条件</a> 中分析了 CMS GC 触发的五类情况，并且提到 CMS GC 分为 foreground collector 和 background collector。
-不管是 foreground collector 还是 background collector 使用的都是 mark-sweep 算法，分阶段进行标记清理，优点很明显-低延时，但最大的缺点是存在碎片，内存空间利用率低。因此，CMS 为了解决这个问题，在每次进行 foreground collector 之前，判断是否需要进行一次压缩式 GC。</p>
+  <p>DirectByteBuffer 这个类是 JDK 提供使用堆外内存的一种途径，当然常见的业务开发一般不会接触到，即使涉及到也可能是框架（如 Netty、RPC 等）使用的，对框架使用者来说也是透明的。</p>
   <footer>
     <ul class="actions">
-      <li><a href="https://andyyin.github.io/blog/jvm-%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB%E4%B9%8B-cms-%E4%BD%95%E6%97%B6%E4%BC%9A%E5%8F%98%E6%88%90-full-gc/" class="button big">阅读</a></li>
+      <li><a href="https://andyyin.github.io/blog/java-%E5%A0%86%E5%A4%96%E5%86%85%E5%AD%98%E5%9B%9E%E6%94%B6%E5%8E%9F%E7%90%86/" class="button big">阅读</a></li>
     </ul>
   <ul class="stats">
   <li class="categories">
@@ -382,105 +381,13 @@
                 <li><a class="article-category-link" href="https://andyyin.github.io/tags/java">Java</a></li>
                 
                 
-                <li><a class="article-category-link" href="https://andyyin.github.io/tags/jvm">JVM</a></li>
-                
-                
                 <li><a class="article-category-link" href="https://andyyin.github.io/tags/gc">GC</a></li>
-                
-                
-                <li><a class="article-category-link" href="https://andyyin.github.io/tags/cms-gc">CMS GC</a></li>
-                
-                
-                <li><a class="article-category-link" href="https://andyyin.github.io/tags/full-gc">Full GC</a></li>
-                
-                
-                <li><a class="article-category-link" href="https://andyyin.github.io/tags/foreground-collector">foreground collector</a></li>
-                
-            
-        
-    </ul>
-  </li>
-</ul>
-
-  </footer>
-</article>
-
-        
-            <article class="post">
-  <header>
-    <div class="title">
-        
-            <h2><a href="https://andyyin.github.io/blog/jvm-%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB%E4%B9%8B-cms-gc-%E8%A7%A6%E5%8F%91%E6%9D%A1%E4%BB%B6/">JVM 源码解读之 CMS GC 触发条件</a></h2>
-        
-        
-    </div>
-    <div class="meta">
-        
-
-        <time class="published"
-            datetime='2019-06-07'>
-            2019-06-07</time>
-        <span class="author">涤生</span>
-        
-            <p>7 分钟阅读</p>
-        
-        
-    </div>
-</header>
-
-  
-
-  
-  <p>经常有同学会问，为啥我的应用 Old Gen 的使用占比没达到 CMSInitiatingOccupancyFraction 参数配置的阈值，就触发了 CMS GC，表示很莫名奇妙，不知道问题出在哪？</p>
-  <footer>
-    <ul class="actions">
-      <li><a href="https://andyyin.github.io/blog/jvm-%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB%E4%B9%8B-cms-gc-%E8%A7%A6%E5%8F%91%E6%9D%A1%E4%BB%B6/" class="button big">阅读</a></li>
-    </ul>
-  <ul class="stats">
-  <li class="categories">
-    <ul>
-        
-            
-            
-                <i class="fa fa-folder"></i>
-                
-                
-                <li><a class="article-category-link" href="https://andyyin.github.io/categories/java">Java</a></li>
-                
-                
-                <li><a class="article-category-link" href="https://andyyin.github.io/categories/gc">GC</a></li>
-                
-                
-                <li><a class="article-category-link" href="https://andyyin.github.io/categories/jvm">JVM</a></li>
-                
-            
-        
-    </ul>
-  </li>
-  <li class="tags">
-    <ul>
-        
-            
-            
-                <i class="fa fa-tags"></i>
-                
-                
-                <li><a class="article-category-link" href="https://andyyin.github.io/tags/java">Java</a></li>
                 
                 
                 <li><a class="article-category-link" href="https://andyyin.github.io/tags/jvm">JVM</a></li>
                 
                 
-                <li><a class="article-category-link" href="https://andyyin.github.io/tags/gc">GC</a></li>
-                
-                
-                <li><a class="article-category-link" href="https://andyyin.github.io/tags/cms-gc">CMS GC</a></li>
-                
-                
-                <li><a class="article-category-link" href="https://andyyin.github.io/tags/backgroud-collector">backgroud collector</a></li>
-                
-                
-                <li><a class="article-category-link" href="https://andyyin.github.io/tags/foreground-collector">foreground collector</a></li>
+                <li><a class="article-category-link" href="https://andyyin.github.io/tags/%E5%A0%86%E5%A4%96%E5%86%85%E5%AD%98">堆外内存</a></li>
                 
             
         
@@ -496,7 +403,8 @@
         
 <ul class="actions pagination">
     
-        <li><a href="#" class="disabled button big previous">上一页</a></li>
+        <li><a href="https://andyyin.github.io/tags/gc/"
+                class="button big previous">上一页</a></li>
     
 
     
@@ -526,7 +434,7 @@
       <ul class="icons">
         
           
-    <li><a href="https://andyyin.github.io/tags/foreground-collector/index.xml" type="application/rss+xml" target="_blank" title="RSS" class="fa fa-rss"></a></li>
+    <li><a href="https://andyyin.github.io/tags/gc/index.xml" type="application/rss+xml" target="_blank" title="RSS" class="fa fa-rss"></a></li>
 
 
         
@@ -823,7 +731,7 @@
       <ul class="icons">
         
           
-    <li><a href="https://andyyin.github.io/tags/foreground-collector/index.xml" type="application/rss+xml" target="_blank" title="RSS" class="fa fa-rss"></a></li>
+    <li><a href="https://andyyin.github.io/tags/gc/index.xml" type="application/rss+xml" target="_blank" title="RSS" class="fa fa-rss"></a></li>
 
 
         
