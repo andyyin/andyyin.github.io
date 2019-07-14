@@ -21,8 +21,8 @@
         "accountablePerson" : "",
         "copyrightHolder" : "",
         "copyrightYear" : "2019",
-        "datePublished": "2019-06-15 00:00:00 &#43;0000 UTC",
-        "dateModified" : "2019-06-15 00:00:00 &#43;0000 UTC",
+        "datePublished": "2019-07-14 00:00:00 &#43;0000 UTC",
+        "dateModified" : "2019-07-14 00:00:00 &#43;0000 UTC",
         "url" : "https://andyyin.github.io/",
         "wordCount" : "0",
         "keywords" : [ "Blog" ]
@@ -56,7 +56,7 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://andyyin.github.io/" />
 
-<meta property="og:updated_time" content="2019-06-15T00:00:00&#43;00:00"/>
+<meta property="og:updated_time" content="2019-07-14T00:00:00&#43;00:00"/>
 
         <meta property="og:image" content="https://andyyin.github.io/images/logo.png">
         <meta property="og:image:type" content="image/png">
@@ -240,6 +240,18 @@
                 
                         <article class="mini-post">
                             <header>
+                                <h3><a href="https://andyyin.github.io/blog/%E7%AE%80%E5%8D%95%E7%9A%84-http-%E8%B0%83%E7%94%A8%E4%B8%BA%E4%BB%80%E4%B9%88%E6%97%B6%E5%BB%B6%E8%BF%99%E4%B9%88%E5%A4%A7/">简单的 HTTP 调用，为什么时延这么大？</a></h3>
+                                
+                                <time class="published" datetime=
+                                    '2019-07-14'>
+                                    July 14, 2019</time>
+                            </header>
+                            
+
+                        </article>
+                
+                        <article class="mini-post">
+                            <header>
                                 <h3><a href="https://andyyin.github.io/blog/jvm-%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB%E4%B9%8B-cms-%E4%BD%95%E6%97%B6%E4%BC%9A%E8%BF%9B%E8%A1%8C-full-gc/">JVM 源码解读之 CMS 何时会进行 Full GC</a></h3>
                                 
                                 <time class="published" datetime=
@@ -286,18 +298,6 @@
 
                         </article>
                 
-                        <article class="mini-post">
-                            <header>
-                                <h3><a href="https://andyyin.github.io/blog/%E9%AB%98%E5%90%9E%E5%90%90%E4%BD%8E%E5%BB%B6%E8%BF%9F-java-%E5%BA%94%E7%94%A8%E7%9A%84-gc-%E4%BC%98%E5%8C%96/">[译]高吞吐低延迟 Java 应用的 GC 优化</a></h3>
-                                
-                                <time class="published" datetime=
-                                    '2019-04-21'>
-                                    April 21, 2019</time>
-                            </header>
-                            
-
-                        </article>
-                
 
                 
                     <a href=
@@ -321,7 +321,7 @@
   <header>
     <div class="title">
         
-            <h2><a href="https://andyyin.github.io/blog/jvm-%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB%E4%B9%8B-cms-%E4%BD%95%E6%97%B6%E4%BC%9A%E8%BF%9B%E8%A1%8C-full-gc/">JVM 源码解读之 CMS 何时会进行 Full GC</a></h2>
+            <h2><a href="https://andyyin.github.io/blog/%E7%AE%80%E5%8D%95%E7%9A%84-http-%E8%B0%83%E7%94%A8%E4%B8%BA%E4%BB%80%E4%B9%88%E6%97%B6%E5%BB%B6%E8%BF%99%E4%B9%88%E5%A4%A7/">简单的 HTTP 调用，为什么时延这么大？</a></h2>
         
         
     </div>
@@ -329,8 +329,8 @@
         
 
         <time class="published"
-            datetime='2019-06-15'>
-            2019-06-15</time>
+            datetime='2019-07-14'>
+            2019-07-14</time>
         <span class="author">涤生</span>
         
             <p>3 分钟阅读</p>
@@ -347,179 +347,188 @@
   <div id="content">
     
 
-<h1 id="前言">前言</h1>
+<h2 id="1-背景">1. 背景</h2>
 
-<p>在文章 <a href="https://andyyin.github.io/blog/jvm-源码解读之-cms-gc-触发条件">JVM 源码解读之 CMS GC 触发条件</a> 中分析了 CMS GC 触发的五类情况，并且提到 CMS GC 分为 foreground collector 和 background collector。
-不管是 foreground collector 还是 background collector 使用的都是 mark-sweep 算法，分阶段进行标记清理，优点很明显-低延时，但最大的缺点是存在碎片，内存空间利用率低。因此，CMS 为了解决这个问题，在每次进行 foreground collector 之前，判断是否需要进行一次压缩式 GC。</p>
+<p>最近项目测试遇到个奇怪的现象，在测试环境通过 Apache HttpClient 调用后端的 HTTP 服务，平均耗时居然接近 <strong>39.2ms</strong>。可能你乍一看觉得这不是很正常吗，有什么好奇怪的？其实不然，我再来说下一些基本信息，该后端的 HTTP 服务并没有什么业务逻辑，只是将一段字符串转成大写然后返回，字符串长度也仅只有 <strong>100</strong> 字符，另外网络 ping 延时只有 <strong>1.9ms</strong> 左右。因此，理论上该调用耗时应该在 <strong>2-3ms</strong> 左右，但为什么平均耗时 <strong>39.2ms</strong> 呢？</p>
 
-<p>此压缩式 GC，CMS 使用的是跟 Serial Old GC 一样的 LISP2 算法，其使用 mark-compact 来做 Full GC，一般称之为 MSC（mark-sweep-compact），它收集的范围是 Java 堆的 Young Gen 和 Old Gen，以及  metaspace（元空间）。</p>
+<p><img src="https://andyyin.github.io/img/2019/07/httpoptimized/invoke-delay.png" alt="调用时延" />
+<img src="https://andyyin.github.io/img/2019/07/httpoptimized/ping-delay.png" alt="ping 时延" /></p>
 
-<p>本文不涉及具体的收集过程，只分析 CMS 在什么情况下会进行 compact 的 Full GC。</p>
+<p>由于工作原因，调用耗时的问题，对我来说，已经见怪不怪了，经常会帮业务解决内部 RPC 框架调用超时的相关问题，但是 HTTP 调用耗时第一次遇到。不过，排查问题的套路是一样的。主要方法论无外乎由外而内、至上而下等排查方法。我们先来看看外围的一些指标，看能否发现蛛丝马迹。</p>
 
-<blockquote>
-<p>本文内容是基于 JDK 8</p>
+<h2 id="2-外围指标">2. 外围指标</h2>
 
-<p>什么情况下会进行一次压缩式 Full GC 呢？</p>
-</blockquote>
+<h3 id="2-1-系统指标">2.1 系统指标</h3>
 
-<h1 id="何时会进行-fullgc">何时会进行 FullGC？</h1>
+<p>主要看外围的一些系统指标（注意：<strong>调用与被调用的机器</strong>都要看）。例如负载、CPU。只需一个 top 命令就能一览无余。</p>
 
-<p>下面这段代码就是 CMS 进行判断是进行 mark-sweep 的 foreground collector，还是进行 mark-sweep-compact 的 Full GC。主要的判断依据就是是否进行压缩，即代码中的 should_compact。</p>
+<p>因此，确认了下 CPU 和负载都很空闲。由于当时没有截图，这里就不放图了。</p>
 
-<pre><code>// Check if we need to do a compaction, or if not, whether
-// we need to start the mark-sweep from scratch.
-bool should_compact    = false;
-bool should_start_over = false;
-decide_foreground_collection_type(clear_all_soft_refs,
-    &amp;should_compact, &amp;should_start_over);
-...
-if (should_compact) {
-    ...
-    // mark-sweep-compact
-    do_compaction_work(clear_all_soft_refs);
-    ...
-} else {
-    // mark-sweep
-    do_mark_sweep_work(clear_all_soft_refs, first_state,
-      should_start_over);
+<h3 id="2-2-进程指标">2.2 进程指标</h3>
+
+<p>Java 程序进程指标主要看 GC、线程堆栈情况（注意：<strong>调用与被调用的机器</strong>都要看）。</p>
+
+<p>Young GC 都非常少，而且耗时也在 <strong>10ms</strong> 以内，因此没有长时间的 STW。</p>
+
+<p>因为平均调用时间 39.2ms，比较大，如果耗时是代码导致，线程堆栈应该能发现点啥。看了之后一无所获，服务的相关线程堆栈主要表现是线程池的线程在等任务，这就意味着线程并不忙。</p>
+
+<p>是不是感觉黔驴技穷了，接下来该怎么办呢？</p>
+
+<h2 id="3-本地复现">3. 本地复现</h2>
+
+<p>如果本地（本地是 MAC 系统）能复现，对排查问题也是极好的。</p>
+
+<p>因此在本地使用 Apache HttpClient 写了个简单 Test 程序，直接调用后端的 HTTP 服务，发现平均耗时在 <strong>55ms</strong> 左右。咦，怎么跟测试环境 <strong>39.2ms</strong> 的结果有点区别。主要是本地与测试环境的后端的 HTTP 服务机器跨地区了，ping 时延在 <strong>26ms</strong> 左右，所以延时增大了。不过本地确实也是存在问题的，因为ping 时延是 <strong>26ms</strong>，后端 HTTP 服务逻辑简单，几乎不耗时，因此本地调用平均耗时应该在 <strong>26ms</strong> 左右，为什么是 <strong>55ms</strong>？</p>
+
+<p>是不是越来越迷惑，一头雾水，不知如何下手？</p>
+
+<p>期间怀疑过 Apache HttpClient 是不是有什么地方使用的不对，因此使用 JDK 自带的 HttpURLConnection 写了简单的程序，做了测试，结果一样。</p>
+
+<h2 id="4-诊断">4. 诊断</h2>
+
+<h3 id="4-1-定位">4.1 定位</h3>
+
+<p>其实从外围的系统指标、进程指标，以及本地复现来看，大致能够断定不是程序上的原因。那 TCP 协议层面呢？</p>
+
+<p>有网络编程经验的同学一定知道 TCP 什么参数会引起这个现象。对，你猜的没错，就是 TCP_NODELAY。</p>
+
+<p>那调用方和被调用方哪边的程序没有设置呢？</p>
+
+<p>调用方使用的是 Apache HttpClient ，tcpNoDelay 默认设置的就是 true。我们再来看看被调用方，也就是我们的后端 HTTP 服务，这个 HTTP 服务用的是 JDK自带的 HttpServer</p>
+
+<pre><code class="language-java">HttpServer server = HttpServer.create(new InetSocketAddress(config.getPort()), BACKLOGS);
+</code></pre>
+
+<p>居然没看到直接设置 tcpNoDelay 接口，翻了下源码。哦，原来在这里，在 ServerConfig 的类中有这段静态块，用来获取启动参数，默认 ServerConfig.noDelay 为 false。</p>
+
+<pre><code class="language-java">static {
+    AccessController.doPrivileged(new PrivilegedAction&lt;Void&gt;() {
+        public Void run() {
+            ServerConfig.idleInterval = Long.getLong(&quot;sun.net.httpserver.idleInterval&quot;, 30L) * 1000L;
+            ServerConfig.clockTick = Integer.getInteger(&quot;sun.net.httpserver.clockTick&quot;, 10000);
+            ServerConfig.maxIdleConnections = Integer.getInteger(&quot;sun.net.httpserver.maxIdleConnections&quot;, 200);
+            ServerConfig.drainAmount = Long.getLong(&quot;sun.net.httpserver.drainAmount&quot;, 65536L);
+            ServerConfig.maxReqHeaders = Integer.getInteger(&quot;sun.net.httpserver.maxReqHeaders&quot;, 200);
+            ServerConfig.maxReqTime = Long.getLong(&quot;sun.net.httpserver.maxReqTime&quot;, -1L);
+            ServerConfig.maxRspTime = Long.getLong(&quot;sun.net.httpserver.maxRspTime&quot;, -1L);
+            ServerConfig.timerMillis = Long.getLong(&quot;sun.net.httpserver.timerMillis&quot;, 1000L);
+            ServerConfig.debug = Boolean.getBoolean(&quot;sun.net.httpserver.debug&quot;);
+   	        ServerConfig.noDelay = Boolean.getBoolean(&quot;sun.net.httpserver.nodelay&quot;);
+            return null;
+        }
+    });
 }
 </code></pre>
 
-<p>接下来我们就来分析下在什么情况下会进行 compact，
-来看 decide_foreground_collection_type 函数，主要分为 4 种情况：</p>
+<h3 id="4-2-验证">4.2 验证</h3>
 
-<ol>
-<li>GC（包含 foreground collector 和 compact 的 Full GC）次数</li>
-<li>GCCause 是否是用户请求式触发导致的</li>
-<li>增量 GC 是否可能会失败（悲观策略）</li>
-<li>是否清理所有 SoftReference</li>
-</ol>
+<p>在后端 HTTP 服务，加上启动&rdquo;-Dsun.net.httpserver.nodelay=true&rdquo;参数，再试试。效果很明显，平均耗时从<strong>39.2ms</strong> 降到 <strong>2.8ms</strong>。
+<img src="https://andyyin.github.io/img/2019/07/httpoptimized/invoke-delay-optimized.png" alt="优化后调用时延" /></p>
 
-<pre><code>void CMSCollector::decide_foreground_collection_type(
-  bool clear_all_soft_refs, bool* should_compact,
-  bool* should_start_over) {
-  ...
-  
-  // 判断是否压缩的逻辑
-  
-  *should_compact =
-    UseCMSCompactAtFullCollection &amp;&amp;
-    ((_full_gcs_since_conc_gc &gt;= CMSFullGCsBeforeCompaction) ||
-     GCCause::is_user_requested_gc(gch-&gt;gc_cause()) ||
-     gch-&gt;incremental_collection_will_fail(true /* consult_young */));
-  *should_start_over = false;
-  
-  if (clear_all_soft_refs &amp;&amp; !*should_compact) {
-  
-    if (CMSCompactWhenClearAllSoftRefs) {
-      *should_compact = true;
-    } else {
-    
-        if (_collectorState &gt; FinalMarking) {
-        _collectorState = Resetting; // skip to reset to start new cycle
-        reset(false /* == !asynch */);
-        *should_start_over = true;
-      } 
-    }
-  }
-}
-</code></pre>
-
-<blockquote>
-<p>接下来我们具体看每种情况</p>
-</blockquote>
-
-<h2 id="1-gc-包含-foreground-collector-和-compact-的-full-gc-次数">1. GC（包含 foreground collector 和 compact 的 Full GC）次数</h2>
-
-<pre><code>// UseCMSCompactAtFullCollection 参数值默认是 true
-UseCMSCompactAtFullCollection &amp;&amp;
-    ((_full_gcs_since_conc_gc &gt;= CMSFullGCsBeforeCompaction)
-</code></pre>
-
-<p>这里说的 GC 次数 _full_gcs_since_conc_gc，指的是从上次 background collector 后，foreground collector 和 compact 的 Full GC 的次数，只要次数大于等于 CMSFullGCsBeforeCompaction 参数阈值，就表示可以进行一次压缩式的 Full GC。
-（CMSFullGCsBeforeCompaction 参数默认是 0，意味着默认是要进行压缩式的 Full GC。）</p>
-
-<h2 id="2-gccause-是否是用户请求式触发导致">2. GCCause 是否是用户请求式触发导致</h2>
-
-<pre><code> inline static bool is_user_requested_gc(GCCause::Cause cause) {
-    return (cause == GCCause::_java_lang_system_gc ||
-            cause == GCCause::_jvmti_force_gc);
-  }
-</code></pre>
-
-<p>用户请求式触发导致的 GCCause 指的是 _java_lang_system_gc（即 System.gc()）或者 _jvmti_force_gc（即 JVMTI 方式的强制 GC）
-意味着只要是 System.gc（前提没有配置 ExplicitGCInvokesConcurrent 参数）调用或者 JVMTI 方式的强制 GC 都会进行一次压缩式的 Full GC。</p>
-
-<h2 id="3-增量-gc-是否可能会失败-悲观策略">3. 增量 GC 是否可能会失败（悲观策略）</h2>
-
-<pre><code>  bool incremental_collection_will_fail(bool consult_young) {
-    // Assumes a 2-generation system; the first disjunct remembers if an
-    // incremental collection failed, even when we thought (second disjunct)
-    // that it would not.
-    assert(heap()-&gt;collector_policy()-&gt;is_two_generation_policy(),
-           &quot;the following definition may not be suitable for an n(&gt;2)-generation system&quot;);
-    return incremental_collection_failed() ||
-           (consult_young &amp;&amp; !get_gen(0)-&gt;collection_attempt_is_safe());
-  }
-</code></pre>
-
-<p><a href="https://andyyin.github.io/blog/jvm-源码解读之-cms-gc-触发条件">JVM 源码解读之 CMS GC 触发条件</a> 文章中也提到了这块内容，
-指的是两代的 GC 体系中，主要指的是 Young GC 是否会失败。如果 Young GC 已经失败或者可能会失败，CMS 就认为可能存在碎片导致的，需要进行一次压缩式的 Full GC。</p>
-
-<p>“incremental_collection_failed()” 这里指的是 Young GC 已经失败，至于为什么会失败一般是因为 Old Gen 没有足够的空间来容纳晋升的对象，比如常见的 “promotion failed” 。</p>
-
-<p>“!get_gen(0)-&gt;collection_attempt_is_safe()” 指的是 Young Gen 存活对象晋升是否可能会失败。
-通过判断当前 Old Gen 剩余的空间大小是否足够容纳 Young GC 晋升的对象大小。
-Young GC 到底要晋升多少是无法提前知道的，因此，这里通过统计平均每次 Young GC 晋升的大小和当前 Young GC 可能晋生的最大大小来进行比较。</p>
-
-<p>下面展示的就是 collection_attempt_is_safe 函数的代码：</p>
-
-<pre><code>bool DefNewGeneration::collection_attempt_is_safe() {
-  if (!to()-&gt;is_empty()) {
-    if (Verbose &amp;&amp; PrintGCDetails) {
-      gclog_or_tty-&gt;print(&quot; :: to is not empty :: &quot;);
-    }
-    return false;
-  }
-  if (_next_gen == NULL) {
-    GenCollectedHeap* gch = GenCollectedHeap::heap();
-    _next_gen = gch-&gt;next_gen(this);
-  }
-  return _next_gen-&gt;promotion_attempt_is_safe(used());
-}
-
-</code></pre>
-
-<h2 id="4-是否清理所有-softreference">4. 是否清理所有 SoftReference</h2>
-
-<pre><code>if (clear_all_soft_refs &amp;&amp; !*should_compact) {
-  
-    if (CMSCompactWhenClearAllSoftRefs) {
-      *should_compact = true;
-    } 
-    ...
-</code></pre>
-
-<p>SoftReference 软引用，你应该了解它的特性，一般是在内存不够的时候，GC 会回收相关对象内存。这里说的就是需要回收所有软引用的情况，在配置了 CMSCompactWhenClearAllSoftRefs 参数的情况下，会进行一次压缩式的 Full GC。</p>
-
-<blockquote>
-<p>JDK 1.9 有变更：
-彻底去掉了 CMS forground collector 的功能，也就是说除了 background collector，就是压缩式的 Full GC。自然（UseCMSCompactAtFullCollection、CMSFullGCsBeforeCompaction 这两个参数也已经不在支持了。</p>
-</blockquote>
-
-<h1 id="总结">总结</h1>
-
-<p>本文着重介绍了 CMS 在以下 4 种情况：</p>
+<p>问题是解决了，但是到这里如果你就此止步，那就太便宜了这个案例了，简直暴殄天物。因为还有一堆疑惑等着你呢？</p>
 
 <ul>
-<li>GC（包含 foreground collector 和 compact 的 Full GC）次数</li>
-<li>GCCause 是否是用户请求式触发导致</li>
-<li>增量 GC 是否可能会失败（悲观策略）</li>
-<li>是否清理所有 SoftReference</li>
+<li>为什么加了 TCP_NODELAY ，时延就从 <strong>39.2ms</strong> 降低到 <strong>2.8ms</strong>？</li>
+<li>为什么本地测试的平均时延是 <strong>55ms</strong>，而不是 ping 的时延 <strong>26ms</strong>？</li>
+<li>TCP 协议究竟是怎么发送数据包的？</li>
 </ul>
 
-<p>会进行压缩式的 Full GC，并且详细介绍了每种情况下的触发条件。
-我们在 GC 调优时应该尽可能的避免压缩式的 Full GC，因为其使用的是 Serial Old GC 类似算法，它是单线程对全堆以及 metaspace 进行回收，STW 的时间会特别长，对业务系统的可用性影响比较大。</p>
+<p>来，我们接着乘热打铁。</p>
+
+<h2 id="5-解惑">5. 解惑</h2>
+
+<h3 id="5-1-tcp-nodelay-何许人也">5.1 TCP_NODELAY 何许人也？</h3>
+
+<p>在 Socket 编程中，TCP_NODELAY 选项是用来控制是否开启 Nagle 算法。在 Java 中，为 ture 表示关闭 Nagle 算法，为 false 表示打开 Nagle 算法。你一定会问 Nagle 算法是什么？</p>
+
+<h3 id="5-2-nagle-算法是什么鬼">5.2 Nagle 算法是什么鬼？</h3>
+
+<p>Nagle 算法是一种通过减少通过网络发送的数据包数量来提高 TCP/IP 网络效率的方法。它使用发明人 John Nagle 的名字来命名的，John Nagle 在 1984 年首次用这个算法来尝试解决福特汽车公司的网络拥塞问题。</p>
+
+<p>试想如果应用程序每次产生 1 个字节的数据，然后这 1 个字节数据又以网络数据包的形式发送到远端服务器，那么就很容易导致网络由于太多的数据包而过载。在这种典型情况下，传送一个只拥有1个字节有效数据的数据包，却要花费 40 个字节长包头（即 IP 头部 20 字节 + TCP 头部 20 字节）的额外开销，这种有效载荷（payload）的利用率是极其低下。</p>
+
+<p>Nagle 算法的内容比较简单，以下是伪代码：</p>
+
+<pre><code>if there is new data to send
+  if the window size &gt;= MSS and available data is &gt;= MSS
+    send complete MSS segment now
+  else
+    if there is unconfirmed data still in the pipe
+      enqueue data in the buffer until an acknowledge is received
+    else
+      send data immediately
+    end if
+  end if
+end if
+</code></pre>
+
+<p>具体的做法就是：</p>
+
+<ul>
+<li>如果发送内容大于等于 1 个 MSS， 立即发送；</li>
+<li>如果之前没有包未被 ACK， 立即发送；</li>
+<li>如果之前有包未被 ACK， 缓存发送内容；</li>
+<li>如果收到 ACK， 立即发送缓存的内容。
+（MSS 为 TCP 数据包每次能够传输的最大数据分段）</li>
+</ul>
+
+<h3 id="5-3-delayed-ack-又是什么玩意">5.3 Delayed ACK 又是什么玩意？</h3>
+
+<p>大家都知道 TCP 协议为了保证传输的可靠性，规定在接受到数据包时需要向对方发送一个确认。只是单纯的发送一个确认，代价会比较高（IP 头部 20 字节 + TCP 头部 20 字节）。<strong>TCP Delayed ACK（延迟确认）就是为了努力改善网络性能，来解决这个问题的，它将几个 ACK 响应组合合在一起成为单个响应，或者将 ACK 响应与响应数据一起发送给对方，从而减少协议开销</strong>。</p>
+
+<p>具体的做法是：</p>
+
+<ul>
+<li>当有响应数据要发送时，ACK 会随响应数据立即发送给对方；</li>
+<li>如果没有响应数据，ACK 将会延迟发送，以等待看是否有响应数据可以一起发送。在 Linux 系统中，默认这个延迟时间是 40ms；</li>
+<li>如果在等待发送 ACK 期间，对方的第二个数据包又到达了，这时要立即发送 ACK。但是如果对方的三个数据包相继到达，第三个数据段到达时是否立即发送 ACK，则取决于以上两条。</li>
+</ul>
+
+<h3 id="5-4-nagle-与-delayed-ack-一起会发生什么化学反应">5.4 Nagle 与 Delayed ACK 一起会发生什么化学反应？</h3>
+
+<p>Nagle 与 Delayed ACK 都能提高网络传输的效率，但在一起会好心办坏事。例如，以下这个场景：</p>
+
+<p>A 和 B 进行数据传输 : A 运行 Nagle 算法，B 运行 Delayed ACK 算法。</p>
+
+<p>如果 A 向 B 发一个数据包，B 由于 Delayed ACK 不会立即响应。而 A 使用 Nagle 算法，A 就会一直等 B 的 ACK，ACK 不来一直不发送第二个数据包，如果这两个数据包是应对同一个请求，那这个请求就会被耽误了 <strong>40ms</strong>。</p>
+
+<h3 id="5-5-抓个包玩玩吧">5.5 抓个包玩玩吧</h3>
+
+<p>我们来抓个包验证下吧，在后端HTTP服务上执行以下脚本，就可以轻松完成抓包过程。</p>
+
+<pre><code>sudo tcpdump -i eth0 tcp and host 10.48.159.165 -s 0 -w traffic.pcap
+</code></pre>
+
+<p>如下图，这是使用 Wireshark 分析包内容的展示，红框内是一个完整的 POST 请求处理过程，看 130 序号和 149 序号之间相差 40ms（0.1859 - 0.1448 = 0.0411s = 41ms），这个就是 Nagle 与 Delayed ACK 一起发送的化学反应，其中 10.48.159.165 运行的是 Delayed ACK，10.22.29.180 运行的是 Nagle 算法。10.22.29.180 在等 ACK，而 10.48.159.165 触发了 Delayed ACK，这样傻傻等了 40ms。</p>
+
+<p><img src="https://andyyin.github.io/img/2019/07/httpoptimized/test-traffic.png" alt="测试环境数据包分析" /></p>
+
+<p><strong>这也就解释了为什么测试环境耗时是 39.2ms，因为大部分都被 Delayed ACK 的 40ms 给耽误了。</strong></p>
+
+<p>但是本地复现时，为什么本地测试的平均时延是 <strong>55ms</strong>，而不是 ping 的时延 <strong>26ms</strong>？我们也来抓个包吧。</p>
+
+<p>如下图，红框内是一个完整的 POST 请求处理过程，看 8 序号和 9 序号之间相差 25ms 左右，再减去网络延时约是ping延时的一半 13ms，因此 Delayed Ack 约 12ms 左右（由于本地是 MAC 系统与 Linux 有些差异）。</p>
+
+<p><img src="https://andyyin.github.io/img/2019/07/httpoptimized/local-traffic.png" alt="本地环境数据包分析" /></p>
+
+<pre><code>1. Linux 使用的是 /proc/sys/net/ipv4/tcp_delack_min 这个系统配置来控制 Delayed ACK 的时间，Linux 默认是 40ms；
+2. MAC 是通过 net.inet.tcp.delayed_ack 系统配置来控制 Delayed ACK 的。
+  delayed_ack=0 responds after every packet (OFF)
+  delayed_ack=1 always employs delayed ack, 6 packets can get 1 ack 
+  delayed_ack=2 immediate ack after 2nd packet, 2 packets per ack  (Compatibility Mode)
+  delayed_ack=3 should auto detect when to employ delayed ack, 4packets per ack.  (DEFAULT)
+设置为 0 表示禁止延迟 ACK，设置为 1 表示总是延迟 ACK，设置为 2 表示每两个数据包回复一个 ACK，设置为 3 表示系统自动探测回复 ACK 的时机。
+</code></pre>
+
+<h3 id="5-6-为什么-tcp-nodelay-能够解决问题">5.6 为什么 TCP_NODELAY 能够解决问题？</h3>
+
+<p>TCP_NODELAY 关闭了 Nagle 算法，即使上个数据包的 ACK 没有到达，也会发送下个数据包，进而打破 Delayed ACK 造成的影响。一般在网络编程中，非常建议开启 TCP_NODELAY，来提升响应速度。</p>
+
+<p>当然也可以通过 Delayed ACK 相关系统的配置来解决问题，但由于需要修改机器配置，很不方便，因此，这种方式不太推荐。</p>
+
+<h2 id="6-总结">6. 总结</h2>
+
+<p>本文是从一个简单的 HTTP 调用，时延比较大而引发的一次问题排查过程。过程中，首先由外而内的分析了相关问题，然后定位问题并验证解决方案。最后刨根问底对 TCP 传输的中的 Nagle 与 Delayed ACK 做了全面的讲解，更加透测的剖析了该问题案例。</p>
 
 <hr />
 
@@ -548,10 +557,7 @@ Young GC 到底要晋升多少是无法提前知道的，因此，这里通过�
                 <li><a class="article-category-link" href="https://andyyin.github.io/categories/java">Java</a></li>
                 
                 
-                <li><a class="article-category-link" href="https://andyyin.github.io/categories/gc">GC</a></li>
-                
-                
-                <li><a class="article-category-link" href="https://andyyin.github.io/categories/jvm">JVM</a></li>
+                <li><a class="article-category-link" href="https://andyyin.github.io/categories/http">HTTP</a></li>
                 
             
         
@@ -565,22 +571,19 @@ Young GC 到底要晋升多少是无法提前知道的，因此，这里通过�
                 <i class="fa fa-tags"></i>
                 
                 
-                <li><a class="article-category-link" href="https://andyyin.github.io/tags/java">Java</a></li>
+                <li><a class="article-category-link" href="https://andyyin.github.io/tags/http">HTTP</a></li>
                 
                 
-                <li><a class="article-category-link" href="https://andyyin.github.io/tags/jvm">JVM</a></li>
+                <li><a class="article-category-link" href="https://andyyin.github.io/tags/%E6%97%B6%E5%BB%B6">时延</a></li>
                 
                 
-                <li><a class="article-category-link" href="https://andyyin.github.io/tags/gc">GC</a></li>
+                <li><a class="article-category-link" href="https://andyyin.github.io/tags/httpserver">HTTPServer</a></li>
                 
                 
-                <li><a class="article-category-link" href="https://andyyin.github.io/tags/cms-gc">CMS GC</a></li>
+                <li><a class="article-category-link" href="https://andyyin.github.io/tags/nagle">Nagle</a></li>
                 
                 
-                <li><a class="article-category-link" href="https://andyyin.github.io/tags/full-gc">Full GC</a></li>
-                
-                
-                <li><a class="article-category-link" href="https://andyyin.github.io/tags/foreground-collector">foreground collector</a></li>
+                <li><a class="article-category-link" href="https://andyyin.github.io/tags/delayed-ack">Delayed ACK</a></li>
                 
             
         
@@ -594,8 +597,8 @@ Young GC 到底要晋升多少是无法提前知道的，因此，这里通过�
 
 <ul class="actions pagination">
     
-        <li><a href="https://andyyin.github.io/blog/jvm-%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB%E4%B9%8B-cms-gc-%E8%A7%A6%E5%8F%91%E6%9D%A1%E4%BB%B6/"
-                class="button big previous">JVM 源码解读之 CMS GC 触发条件</a></li>
+        <li><a href="https://andyyin.github.io/blog/jvm-%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB%E4%B9%8B-cms-%E4%BD%95%E6%97%B6%E4%BC%9A%E8%BF%9B%E8%A1%8C-full-gc/"
+                class="button big previous">JVM 源码解读之 CMS 何时会进行 Full GC</a></li>
     
 
     
@@ -614,7 +617,7 @@ Young GC 到底要晋升多少是无法提前知道的，因此，这里通过�
 
 
 <li>
-  <a href="//twitter.com/share?url=https%3a%2f%2fandyyin.github.io%2fblog%2fjvm-%25E6%25BA%2590%25E7%25A0%2581%25E8%25A7%25A3%25E8%25AF%25BB%25E4%25B9%258B-cms-%25E4%25BD%2595%25E6%2597%25B6%25E4%25BC%259A%25E8%25BF%259B%25E8%25A1%258C-full-gc%2f&amp;text=JVM%20%e6%ba%90%e7%a0%81%e8%a7%a3%e8%af%bb%e4%b9%8b%20CMS%20%e4%bd%95%e6%97%b6%e4%bc%9a%e8%bf%9b%e8%a1%8c%20Full%20GC&amp;via=" target="_blank" class="share-btn twitter">
+  <a href="//twitter.com/share?url=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E7%25AE%2580%25E5%258D%2595%25E7%259A%2584-http-%25E8%25B0%2583%25E7%2594%25A8%25E4%25B8%25BA%25E4%25BB%2580%25E4%25B9%2588%25E6%2597%25B6%25E5%25BB%25B6%25E8%25BF%2599%25E4%25B9%2588%25E5%25A4%25A7%2f&amp;text=%e7%ae%80%e5%8d%95%e7%9a%84%20HTTP%20%e8%b0%83%e7%94%a8%ef%bc%8c%e4%b8%ba%e4%bb%80%e4%b9%88%e6%97%b6%e5%bb%b6%e8%bf%99%e4%b9%88%e5%a4%a7%ef%bc%9f&amp;via=" target="_blank" class="share-btn twitter">
     <i class="fa fa-twitter"></i>
     <p>Twitter</p>
     </a>
@@ -624,7 +627,7 @@ Young GC 到底要晋升多少是无法提前知道的，因此，这里通过�
 
 
 <li>
-  <a href="//plus.google.com/share?url=https%3a%2f%2fandyyin.github.io%2fblog%2fjvm-%25E6%25BA%2590%25E7%25A0%2581%25E8%25A7%25A3%25E8%25AF%25BB%25E4%25B9%258B-cms-%25E4%25BD%2595%25E6%2597%25B6%25E4%25BC%259A%25E8%25BF%259B%25E8%25A1%258C-full-gc%2f" target="_blank" class="share-btn google-plus">
+  <a href="//plus.google.com/share?url=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E7%25AE%2580%25E5%258D%2595%25E7%259A%2584-http-%25E8%25B0%2583%25E7%2594%25A8%25E4%25B8%25BA%25E4%25BB%2580%25E4%25B9%2588%25E6%2597%25B6%25E5%25BB%25B6%25E8%25BF%2599%25E4%25B9%2588%25E5%25A4%25A7%2f" target="_blank" class="share-btn google-plus">
     <i class="fa fa-google-plus"></i>
     <p>Google+</p>
   </a>
@@ -635,7 +638,7 @@ Young GC 到底要晋升多少是无法提前知道的，因此，这里通过�
 
 
 <li>
-  <a href="//www.facebook.com/sharer/sharer.php?u=https%3a%2f%2fandyyin.github.io%2fblog%2fjvm-%25E6%25BA%2590%25E7%25A0%2581%25E8%25A7%25A3%25E8%25AF%25BB%25E4%25B9%258B-cms-%25E4%25BD%2595%25E6%2597%25B6%25E4%25BC%259A%25E8%25BF%259B%25E8%25A1%258C-full-gc%2f" target="_blank" class="share-btn facebook">
+  <a href="//www.facebook.com/sharer/sharer.php?u=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E7%25AE%2580%25E5%258D%2595%25E7%259A%2584-http-%25E8%25B0%2583%25E7%2594%25A8%25E4%25B8%25BA%25E4%25BB%2580%25E4%25B9%2588%25E6%2597%25B6%25E5%25BB%25B6%25E8%25BF%2599%25E4%25B9%2588%25E5%25A4%25A7%2f" target="_blank" class="share-btn facebook">
     <i class="fa fa-facebook"></i>
     <p>Facebook</p>
     </a>
@@ -645,7 +648,7 @@ Young GC 到底要晋升多少是无法提前知道的，因此，这里通过�
 
 
 <li>
-  <a href="//reddit.com/submit?url=https%3a%2f%2fandyyin.github.io%2fblog%2fjvm-%25E6%25BA%2590%25E7%25A0%2581%25E8%25A7%25A3%25E8%25AF%25BB%25E4%25B9%258B-cms-%25E4%25BD%2595%25E6%2597%25B6%25E4%25BC%259A%25E8%25BF%259B%25E8%25A1%258C-full-gc%2f&amp;title=JVM%20%e6%ba%90%e7%a0%81%e8%a7%a3%e8%af%bb%e4%b9%8b%20CMS%20%e4%bd%95%e6%97%b6%e4%bc%9a%e8%bf%9b%e8%a1%8c%20Full%20GC" target="_blank" class="share-btn reddit">
+  <a href="//reddit.com/submit?url=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E7%25AE%2580%25E5%258D%2595%25E7%259A%2584-http-%25E8%25B0%2583%25E7%2594%25A8%25E4%25B8%25BA%25E4%25BB%2580%25E4%25B9%2588%25E6%2597%25B6%25E5%25BB%25B6%25E8%25BF%2599%25E4%25B9%2588%25E5%25A4%25A7%2f&amp;title=%e7%ae%80%e5%8d%95%e7%9a%84%20HTTP%20%e8%b0%83%e7%94%a8%ef%bc%8c%e4%b8%ba%e4%bb%80%e4%b9%88%e6%97%b6%e5%bb%b6%e8%bf%99%e4%b9%88%e5%a4%a7%ef%bc%9f" target="_blank" class="share-btn reddit">
     <i class="fa fa-reddit-alien"></i>
     <p>Reddit</p>
   </a>
@@ -655,7 +658,7 @@ Young GC 到底要晋升多少是无法提前知道的，因此，这里通过�
 
 
 <li>
-  <a href="//www.linkedin.com/shareArticle?url=https%3a%2f%2fandyyin.github.io%2fblog%2fjvm-%25E6%25BA%2590%25E7%25A0%2581%25E8%25A7%25A3%25E8%25AF%25BB%25E4%25B9%258B-cms-%25E4%25BD%2595%25E6%2597%25B6%25E4%25BC%259A%25E8%25BF%259B%25E8%25A1%258C-full-gc%2f&amp;title=JVM%20%e6%ba%90%e7%a0%81%e8%a7%a3%e8%af%bb%e4%b9%8b%20CMS%20%e4%bd%95%e6%97%b6%e4%bc%9a%e8%bf%9b%e8%a1%8c%20Full%20GC" target="_blank" class="share-btn linkedin">
+  <a href="//www.linkedin.com/shareArticle?url=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E7%25AE%2580%25E5%258D%2595%25E7%259A%2584-http-%25E8%25B0%2583%25E7%2594%25A8%25E4%25B8%25BA%25E4%25BB%2580%25E4%25B9%2588%25E6%2597%25B6%25E5%25BB%25B6%25E8%25BF%2599%25E4%25B9%2588%25E5%25A4%25A7%2f&amp;title=%e7%ae%80%e5%8d%95%e7%9a%84%20HTTP%20%e8%b0%83%e7%94%a8%ef%bc%8c%e4%b8%ba%e4%bb%80%e4%b9%88%e6%97%b6%e5%bb%b6%e8%bf%99%e4%b9%88%e5%a4%a7%ef%bc%9f" target="_blank" class="share-btn linkedin">
       <i class="fa fa-linkedin"></i>
       <p>LinkedIn</p>
     </a>
@@ -665,7 +668,7 @@ Young GC 到底要晋升多少是无法提前知道的，因此，这里通过�
 
 
 <li>
-  <a href="//www.stumbleupon.com/submit?url=https%3a%2f%2fandyyin.github.io%2fblog%2fjvm-%25E6%25BA%2590%25E7%25A0%2581%25E8%25A7%25A3%25E8%25AF%25BB%25E4%25B9%258B-cms-%25E4%25BD%2595%25E6%2597%25B6%25E4%25BC%259A%25E8%25BF%259B%25E8%25A1%258C-full-gc%2f&amp;title=JVM%20%e6%ba%90%e7%a0%81%e8%a7%a3%e8%af%bb%e4%b9%8b%20CMS%20%e4%bd%95%e6%97%b6%e4%bc%9a%e8%bf%9b%e8%a1%8c%20Full%20GC" target="_blank" class="share-btn stumbleupon">
+  <a href="//www.stumbleupon.com/submit?url=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E7%25AE%2580%25E5%258D%2595%25E7%259A%2584-http-%25E8%25B0%2583%25E7%2594%25A8%25E4%25B8%25BA%25E4%25BB%2580%25E4%25B9%2588%25E6%2597%25B6%25E5%25BB%25B6%25E8%25BF%2599%25E4%25B9%2588%25E5%25A4%25A7%2f&amp;title=%e7%ae%80%e5%8d%95%e7%9a%84%20HTTP%20%e8%b0%83%e7%94%a8%ef%bc%8c%e4%b8%ba%e4%bb%80%e4%b9%88%e6%97%b6%e5%bb%b6%e8%bf%99%e4%b9%88%e5%a4%a7%ef%bc%9f" target="_blank" class="share-btn stumbleupon">
     <i class="fa fa-stumbleupon"></i>
     <p>StumbleUpon</p>
   </a>
@@ -675,7 +678,7 @@ Young GC 到底要晋升多少是无法提前知道的，因此，这里通过�
 
 
 <li>
-  <a href="//www.pinterest.com/pin/create/button/?url=https%3a%2f%2fandyyin.github.io%2fblog%2fjvm-%25E6%25BA%2590%25E7%25A0%2581%25E8%25A7%25A3%25E8%25AF%25BB%25E4%25B9%258B-cms-%25E4%25BD%2595%25E6%2597%25B6%25E4%25BC%259A%25E8%25BF%259B%25E8%25A1%258C-full-gc%2f&amp;description=JVM%20%e6%ba%90%e7%a0%81%e8%a7%a3%e8%af%bb%e4%b9%8b%20CMS%20%e4%bd%95%e6%97%b6%e4%bc%9a%e8%bf%9b%e8%a1%8c%20Full%20GC" target="_blank" class="share-btn pinterest">
+  <a href="//www.pinterest.com/pin/create/button/?url=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E7%25AE%2580%25E5%258D%2595%25E7%259A%2584-http-%25E8%25B0%2583%25E7%2594%25A8%25E4%25B8%25BA%25E4%25BB%2580%25E4%25B9%2588%25E6%2597%25B6%25E5%25BB%25B6%25E8%25BF%2599%25E4%25B9%2588%25E5%25A4%25A7%2f&amp;description=%e7%ae%80%e5%8d%95%e7%9a%84%20HTTP%20%e8%b0%83%e7%94%a8%ef%bc%8c%e4%b8%ba%e4%bb%80%e4%b9%88%e6%97%b6%e5%bb%b6%e8%bf%99%e4%b9%88%e5%a4%a7%ef%bc%9f" target="_blank" class="share-btn pinterest">
     <i class="fa fa-pinterest-p"></i>
     <p>Pinterest</p>
   </a>
@@ -685,7 +688,7 @@ Young GC 到底要晋升多少是无法提前知道的，因此，这里通过�
 
 
 <li>
-  <a href="mailto:?subject=Check out this post by %e6%b6%a4%e7%94%9f&amp;body=https%3a%2f%2fandyyin.github.io%2fblog%2fjvm-%25E6%25BA%2590%25E7%25A0%2581%25E8%25A7%25A3%25E8%25AF%25BB%25E4%25B9%258B-cms-%25E4%25BD%2595%25E6%2597%25B6%25E4%25BC%259A%25E8%25BF%259B%25E8%25A1%258C-full-gc%2f" target="_blank" class="share-btn email">
+  <a href="mailto:?subject=Check out this post by %e6%b6%a4%e7%94%9f&amp;body=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E7%25AE%2580%25E5%258D%2595%25E7%259A%2584-http-%25E8%25B0%2583%25E7%2594%25A8%25E4%25B8%25BA%25E4%25BB%2580%25E4%25B9%2588%25E6%2597%25B6%25E5%25BB%25B6%25E8%25BF%2599%25E4%25B9%2588%25E5%25A4%25A7%2f" target="_blank" class="share-btn email">
     <i class="fa fa-envelope"></i>
     <p>Email</p>
   </a>
@@ -828,6 +831,20 @@ Young GC 到底要晋升多少是无法提前知道的，因此，这里通过�
           <article class="mini-post">
             <header>
               <h3>
+                <a href="https://andyyin.github.io/blog/%E7%AE%80%E5%8D%95%E7%9A%84-http-%E8%B0%83%E7%94%A8%E4%B8%BA%E4%BB%80%E4%B9%88%E6%97%B6%E5%BB%B6%E8%BF%99%E4%B9%88%E5%A4%A7/">简单的 HTTP 调用，为什么时延这么大？</a>
+              </h3>
+              
+              <time class="published" datetime='2019-07-14'>
+                2019-07-14
+              </time>
+            </header>
+            
+
+          </article>
+        
+          <article class="mini-post">
+            <header>
+              <h3>
                 <a href="https://andyyin.github.io/blog/jvm-%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB%E4%B9%8B-cms-%E4%BD%95%E6%97%B6%E4%BC%9A%E8%BF%9B%E8%A1%8C-full-gc/">JVM 源码解读之 CMS 何时会进行 Full GC</a>
               </h3>
               
@@ -881,20 +898,6 @@ Young GC 到底要晋升多少是无法提前知道的，因此，这里通过�
 
           </article>
         
-          <article class="mini-post">
-            <header>
-              <h3>
-                <a href="https://andyyin.github.io/blog/%E9%AB%98%E5%90%9E%E5%90%90%E4%BD%8E%E5%BB%B6%E8%BF%9F-java-%E5%BA%94%E7%94%A8%E7%9A%84-gc-%E4%BC%98%E5%8C%96/">[译]高吞吐低延迟 Java 应用的 GC 优化</a>
-              </h3>
-              
-              <time class="published" datetime='2019-04-21'>
-                2019-04-21
-              </time>
-            </header>
-            
-
-          </article>
-        
       </div>
 
       
@@ -928,7 +931,7 @@ Young GC 到底要晋升多少是无法提前知道的，因此，这里通过�
             <header>
               
                 <a href="https://andyyin.github.io/categories/java/">Java</a>
-                <span style="float:right;">12</span>
+                <span style="float:right;">13</span>
               
             </header>
           </article>
@@ -959,6 +962,17 @@ Young GC 到底要晋升多少是无法提前知道的，因此，这里通过�
         <p>
           <article>
             <header>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/http/">HTTP</a>
+                <span style="float:right;">1</span>
               
             </header>
           </article>

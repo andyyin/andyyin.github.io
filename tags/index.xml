@@ -39,6 +39,15 @@
     </item>
     
     <item>
+      <title>Delayed ACK</title>
+      <link>https://andyyin.github.io/tags/delayed-ack/</link>
+      <pubDate>Sun, 14 Jul 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://andyyin.github.io/tags/delayed-ack/</guid>
+      <description></description>
+    </item>
+    
+    <item>
       <title>FinalReference</title>
       <link>https://andyyin.github.io/tags/finalreference/</link>
       <pubDate>Sat, 23 Feb 2019 00:00:00 +0000</pubDate>
@@ -66,6 +75,24 @@
     </item>
     
     <item>
+      <title>HTTP</title>
+      <link>https://andyyin.github.io/tags/http/</link>
+      <pubDate>Sun, 14 Jul 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://andyyin.github.io/tags/http/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>HTTPServer</title>
+      <link>https://andyyin.github.io/tags/httpserver/</link>
+      <pubDate>Sun, 14 Jul 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://andyyin.github.io/tags/httpserver/</guid>
+      <description></description>
+    </item>
+    
+    <item>
       <title>JVM</title>
       <link>https://andyyin.github.io/tags/jvm/</link>
       <pubDate>Sat, 15 Jun 2019 00:00:00 +0000</pubDate>
@@ -80,6 +107,15 @@
       <pubDate>Sat, 15 Jun 2019 00:00:00 +0000</pubDate>
       
       <guid>https://andyyin.github.io/tags/java/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Nagle</title>
+      <link>https://andyyin.github.io/tags/nagle/</link>
+      <pubDate>Sun, 14 Jul 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://andyyin.github.io/tags/nagle/</guid>
       <description></description>
     </item>
     
@@ -197,6 +233,15 @@
       <pubDate>Mon, 15 Apr 2019 00:00:00 +0000</pubDate>
       
       <guid>https://andyyin.github.io/tags/%E6%84%8F%E8%AF%86/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>时延</title>
+      <link>https://andyyin.github.io/tags/%E6%97%B6%E5%BB%B6/</link>
+      <pubDate>Sun, 14 Jul 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://andyyin.github.io/tags/%E6%97%B6%E5%BB%B6/</guid>
       <description></description>
     </item>
     
