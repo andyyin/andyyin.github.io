@@ -6,10 +6,22 @@
     <description>Recent content in JVM on 涤生的博客</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh</language>
-    <lastBuildDate>Sat, 15 Jun 2019 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 23 Jul 2019 00:00:00 +0000</lastBuildDate>
     
 	<atom:link href="https://andyyin.github.io/tags/jvm/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>服务刚启动就 Full GC，要闹哪样？</title>
+      <link>https://andyyin.github.io/blog/%E6%9C%8D%E5%8A%A1%E5%88%9A%E5%90%AF%E5%8A%A8%E5%B0%B1-full-gc%E8%A6%81%E9%97%B9%E5%93%AA%E6%A0%B7/</link>
+      <pubDate>Tue, 23 Jul 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://andyyin.github.io/blog/%E6%9C%8D%E5%8A%A1%E5%88%9A%E5%90%AF%E5%8A%A8%E5%B0%B1-full-gc%E8%A6%81%E9%97%B9%E5%93%AA%E6%A0%B7/</guid>
+      <description>1.背景 最近有个同学说他的服务刚启动就收到两次 Full GC 告警， 按道理来说刚启动，对象应该不会太多，为啥会触发 Full GC 呢？
+带着疑问，我们还是先看看日志吧，毕竟日志的信息更多。
+2.日志 可以看到，其实是两次 CMS GC（监控对 Full GC 和 Old GC 不分）。但是你会发现一个奇怪的现象，咦，&amp;rdquo;CMS-initial-mark: 0K(3222528K)&amp;rdquo; 怎么 Old Gen 对象使用空间大小为 0，细想服务刚启动，Old Gen 为 0 也算正常，但是为什么会触发CMS GC 呢？ 第一次 CMS GC 日志：
+2019-07-16T16:44:56.270+0800: 8.446: [GC (CMS Initial Mark) [1 CMS-initial-mark: 0K(3222528K)] 1477124K(5152832K), 0.0445445 secs] [Times: user=0.16 sys=0.00, real=0.05 secs] 2019-07-16T16:44:56.315+0800: 8.490: [CMS-concurrent-mark-start] 2019-07-16T16:44:56.337+0800: 8.513: [CMS-concurrent-mark: 0.022/0.022 secs] [Times: user=0.03 sys=0.00, real=0.02 secs] 2019-07-16T16:44:56.337+0800: 8.513: [CMS-concurrent-preclean-start] 2019-07-16T16:44:56.</description>
+    </item>
     
     <item>
       <title>JVM 源码解读之 CMS 何时会进行 Full GC</title>
