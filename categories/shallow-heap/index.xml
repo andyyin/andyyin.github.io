@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Shallow Heap on 涤生的博客</title>
+    <link>https://andyyin.github.io/categories/shallow-heap/</link>
+    <description>Recent content in Shallow Heap on 涤生的博客</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh</language>
+    <lastBuildDate>Wed, 23 Oct 2019 00:00:00 +0000</lastBuildDate>
+    
+	<atom:link href="https://andyyin.github.io/categories/shallow-heap/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>[译]Eclipse MAT: Shallow Heap Vs Retained Heap 你理解的对吗?</title>
+      <link>https://andyyin.github.io/blog/eclipse-mat-shallow-heap-vs-retained-heap-%E4%BD%A0%E7%90%86%E8%A7%A3%E7%9A%84%E5%AF%B9%E5%90%97/</link>
+      <pubDate>Wed, 23 Oct 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://andyyin.github.io/blog/eclipse-mat-shallow-heap-vs-retained-heap-%E4%BD%A0%E7%90%86%E8%A7%A3%E7%9A%84%E5%AF%B9%E5%90%97/</guid>
+      <description>有没有想过 Shallow 和 Retained heap 之间的区别？
+ Eclipse MAT（内存分析器工具）是分析 JVM 堆 Dump 文件的强大工具。当尝试分析内存相关的问题时，它非常方便。在 Eclipse MAT 中，报告了两种类型的对象大小：
+ Shallow Heap Retained Heap  在本文中，我们主要讨论它们之间的区别，并探讨它们的计算方式。
+通过示例理解知识会更容易，咱们来看看这样一个例子。例如，假设你的应用程序具有这样的对象模型，如图 1 所示：
+图1：内存中的对象
+ 对象 A 持有对象 B 和 C 的引用。 对象 B 持有对象 D 和 E 的引用。 对象 C 持有对象 F 和 G 的引用。  另外，我们假设每个对象占用 10 个字节的内存。在这种场景下，我们来开始分析吧。
+Shallow Heap 大小 请记住：对象的 Shallow heap 是其自身在内存中的大小。由于在我们的示例中，每个对象占用大约 10 个字节，因此每个对象的 Shallow heap 大小为 10 个字节。很简单。
+B 的 Retained Heap 大小 从图 1 中，您可以注意到对象 B 持有对象 D 和 E 的引用。因此，如果对象 B 是从内存中被垃圾回收，则将不再有对对象 D 和 E 的引用。这意味着此时 D 和 E 也可以被垃圾收集。Retained heap 指的就是在垃圾回收特定对象时将释放的内存量。因此，B 的保留堆大小为： = B 的 shallow heap 大小 + D 的 shallow heap 大小 + E 的 shallow heap 大小 = 10 bytes + 10 bytes + 10 bytes = 30 bytes</description>
+    </item>
+    
+  </channel>
+</rss>

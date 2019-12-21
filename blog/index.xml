@@ -6,17 +6,88 @@
     <description>Recent content in Blogs on 涤生的博客</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh</language>
-    <lastBuildDate>Fri, 04 Oct 2019 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Mon, 18 Nov 2019 00:00:00 +0000</lastBuildDate>
     
 	<atom:link href="https://andyyin.github.io/blog/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
+      <title>[译]用 RSocket 解决响应式服务之间的的通讯-Part 3：基于 RSocket 进行抽象</title>
+      <link>https://andyyin.github.io/blog/%E8%AF%91%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E7%9A%84%E9%80%9A%E8%AE%AF-part-3%E5%9F%BA%E4%BA%8E-rsocket-%E8%BF%9B%E8%A1%8C%E6%8A%BD%E8%B1%A1/</link>
+      <pubDate>Mon, 18 Nov 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://andyyin.github.io/blog/%E8%AF%91%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E7%9A%84%E9%80%9A%E8%AE%AF-part-3%E5%9F%BA%E4%BA%8E-rsocket-%E8%BF%9B%E8%A1%8C%E6%8A%BD%E8%B1%A1/</guid>
+      <description>如果你看过本系列的前两篇文章，应该已经已经发现 RSocket 提供了一些底层的 API。可以直接使用交互模型中的方法进行操作，而且可以没有任何限制来回发送帧。这些基础的 API 为我们提供了许多自由和控制权，但是它可能会引入额外的问题，尤其是与微服务之间的契约相关的问题。
+为了解决这些问题，我们可以使用 RSocket 作为通用抽象层。有两种可用的解决方案：RSocket RPC 或者与 Spring Framework集成。在以下各节中，我们将简要讨论它们。
+基于 RSocket 的 RPC 保持微服务之间的契约干净清晰是分布式系统的关键问题之一。为了确保应用程序可以交换数据，我们可以利用 RPC（远程过程调用）。幸运的是，RSocket 具有专用的 RPC 模块，它使用 Protobuf 作为序列化工具，因此，我们可以从 RSocket 的性能中受益并且同时具有保持契约的能力。通过将生成的服务和对象与 RSocket 接受器结合在一起，我们可以启动完全可操作的 RPC 服务端，并使用 RPC 客户端轻松使用它。
+首先，我们需要定义服务和对象。在下面的示例中，我们创建了具有四个方法的简单的CustomerService服务，它们每个表示交互模型相互不同的方法。
+syntax = &amp;quot;proto3&amp;quot;; option java_multiple_files = true; option java_outer_classname = &amp;quot;ServiceProto&amp;quot;; package com.rsocket.rpc; import &amp;quot;google/protobuf/empty.proto&amp;quot;; message SingleCustomerRequest { string id = 1; } message MultipleCustomersRequest { repeated string ids = 1; } message CustomerResponse { string id = 1; string name = 2; } service CustomerService { rpc getCustomer(SingleCustomerRequest) returns (CustomerResponse) {} //request-response rpc getCustomers(MultipleCustomersRequest) returns (stream CustomerResponse) {} //request-stream rpc deleteCustomer(SingleCustomerRequest) returns (google.</description>
+    </item>
+    
+    <item>
+      <title>[译]Eclipse MAT — Incoming, Outgoing References 你真的了解吗？</title>
+      <link>https://andyyin.github.io/blog/eclipse-mat-incoming-outgoing-references-%E4%BD%A0%E7%9C%9F%E7%9A%84%E4%BA%86%E8%A7%A3%E5%90%97/</link>
+      <pubDate>Fri, 25 Oct 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://andyyin.github.io/blog/eclipse-mat-incoming-outgoing-references-%E4%BD%A0%E7%9C%9F%E7%9A%84%E4%BA%86%E8%A7%A3%E5%90%97/</guid>
+      <description>了解 Eclipse MAT 中 incoming and outgoing 引用之间的区别。
+ Eclipse MAT（内存分析器工具）是分析 JVM 堆 Dump 文件的强大工具。它具有几个非常有效分析内存问题的强大功能。 “Incoming references”和“Outgoing references”就是其中一种功能。在本文中，我们来探讨 Incoming references 和 Outgoing references 以及它们之间的区别。 在 Eclipse MAT 中，当右键单击任何对象时，将看到下拉菜单。如果选择“ListObjects”菜单项，则会注意到两个选项：
+ with outgoing references with incoming references  通过示例理解知识会更容易，咱们来看看这样一个例子。让我们通过示例来了解有关 Incoming references 和 Outgoing references 的更多知识。例如，一个应用程序的源代码如下所示：
+public class A { private C c1 = C.getInstance(); } public class B { private C c2 = C.getInstance(); } public class C { private static C myC = new C(); public static C getInstance() { return myC; } private D d1 = new D(); private E e1 = new E(); } public class D { } public class E { } public class SimpleExample { public static void main (String argsp[]) throws Exception { A a = new A(); B b = new B(); } }  现在，如果要为上述示例应用程序以图形方式绘制对象，则其外观将如下所示： 图 1：示例应用程序的对象引用图</description>
+    </item>
+    
+    <item>
+      <title>[译]Eclipse MAT: Shallow Heap Vs Retained Heap 你理解的对吗?</title>
+      <link>https://andyyin.github.io/blog/eclipse-mat-shallow-heap-vs-retained-heap-%E4%BD%A0%E7%90%86%E8%A7%A3%E7%9A%84%E5%AF%B9%E5%90%97/</link>
+      <pubDate>Wed, 23 Oct 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://andyyin.github.io/blog/eclipse-mat-shallow-heap-vs-retained-heap-%E4%BD%A0%E7%90%86%E8%A7%A3%E7%9A%84%E5%AF%B9%E5%90%97/</guid>
+      <description>有没有想过 Shallow 和 Retained heap 之间的区别？
+ Eclipse MAT（内存分析器工具）是分析 JVM 堆 Dump 文件的强大工具。当尝试分析内存相关的问题时，它非常方便。在 Eclipse MAT 中，报告了两种类型的对象大小：
+ Shallow Heap Retained Heap  在本文中，我们主要讨论它们之间的区别，并探讨它们的计算方式。
+通过示例理解知识会更容易，咱们来看看这样一个例子。例如，假设你的应用程序具有这样的对象模型，如图 1 所示：
+图1：内存中的对象
+ 对象 A 持有对象 B 和 C 的引用。 对象 B 持有对象 D 和 E 的引用。 对象 C 持有对象 F 和 G 的引用。  另外，我们假设每个对象占用 10 个字节的内存。在这种场景下，我们来开始分析吧。
+Shallow Heap 大小 请记住：对象的 Shallow heap 是其自身在内存中的大小。由于在我们的示例中，每个对象占用大约 10 个字节，因此每个对象的 Shallow heap 大小为 10 个字节。很简单。
+B 的 Retained Heap 大小 从图 1 中，您可以注意到对象 B 持有对象 D 和 E 的引用。因此，如果对象 B 是从内存中被垃圾回收，则将不再有对对象 D 和 E 的引用。这意味着此时 D 和 E 也可以被垃圾收集。Retained heap 指的就是在垃圾回收特定对象时将释放的内存量。因此，B 的保留堆大小为： = B 的 shallow heap 大小 + D 的 shallow heap 大小 + E 的 shallow heap 大小 = 10 bytes + 10 bytes + 10 bytes = 30 bytes</description>
+    </item>
+    
+    <item>
+      <title>[译]用 RSocket 解决响应式服务之间的通讯-Part 2：负载均衡和可恢复性</title>
+      <link>https://andyyin.github.io/blog/%E8%AF%91%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E9%80%9A%E8%AE%AF-part-2%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1%E5%92%8C%E5%8F%AF%E6%81%A2%E5%A4%8D%E6%80%A7/</link>
+      <pubDate>Mon, 07 Oct 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://andyyin.github.io/blog/%E8%AF%91%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E9%80%9A%E8%AE%AF-part-2%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1%E5%92%8C%E5%8F%AF%E6%81%A2%E5%A4%8D%E6%80%A7/</guid>
+      <description>本文是《用 RSocket 解决响应式服务之间的通讯》微型系列的第二篇文章，它将帮助你熟悉 RSocket——一种可能会彻底改变机器之间通讯的新二进制协议。在以下段落中，我们将讨论在云环境中的负载平衡问题以及介绍可恢复性能力，可恢复性能力有助于解决网络问题，尤其是在 IOT 系统中。
+如果您不了解 RSocket 基础知识，请查看该系列之前的文章。 高可用性和负载平衡是企业级系统的重要能力 类似银行和保险等许多业务领域，可用性和可靠性是应用程序的核心能力。在这些要求苛刻的行业中，即使在高流量、网络问题导致延迟增加或自然灾害期间，服务也必须 24*7 全天候提供服务。为了确保该软件始终能够提供用户使用，通常会在多个可用区域中对其进行冗余部署。
+在这种情况下，每个微服务的至少两个实例部署在至少两个可用性区域中。多个可用区内冗余部署让系统具有弹性且增加了容量（更多个实例能够处理更高的负载）。那么这样会带来什么问题呢？冗余部署引入了额外的复杂性。作为研发人员，我们必须确保进入的的流量分布在所有可用实例中（如果流量打到不可用的实例上，会导致请求失败）。
+有两种主要的方法可解决这个问题：服务端负载平衡和客户端负载平衡。
+第一种方法（服务端负载平衡）基于以下假设，请求者不知道响应者的 IP 地址。取而代之的是，请求者与负载均衡器进行通信，负载均衡器负责在后端的微服务之间分配进入的请求，类似产品有 Ngnix。这种设计在云时代很容易采用。 IaaS 提供商通常具有内置的可靠解决方案，例如 Amazon Web Services 中提供的 Elastic Load Balancer。此外，这种设计有助于开发比普通轮询式负载均衡更复杂的路由策略（例如，自适应负载平衡或链式故障转移）。该服务端负载平衡的主要缺点是必须配置和部署额外的资源，如果我们的系统包含数百个微服务，这可能会很痛苦。此外，它可能会影响延迟-每个请求在负载均衡器上会增加了网络一跳。
+第二种方法（客户端负载平衡）与第一种方法有些相反。这里请求者知道给定微服务的每个实例的 IP 地址，而不是通过连接到响应者的中心点来进行负载均衡。有了这些微服务的实例 IP 地址，客户端就可以自己选择响应者实例，然后向其发送请求。该方法好处是不需要任何额外资源，但是必须确保请求者具有响应者所有实例的 IP 地址（请参阅如何使用服务发现模式来处理它）。客户端负载平衡模式的主要优点是其性能（可以减少一个额外的“网络跃点”），进而可以显着减少延迟。这也是 RSocket 实现客户端负载平衡模式的关键原因之一。
+RSocket 中的客户端负载平衡 在代码实现方面，RSocket 中客户端负载平衡的实现非常简单。该机制依赖于LoadBalancedRSocketMono对象，根据该对象会从一组可用的 RSocket 实例中选择合适的 RSocket 实例。要访问 RSocket，我们必须订阅LoadBalancedRSocketMono，onNext该方法接收所有 RSocket 实例。而且，它为每个 RSocket 计算统计信息，以便能够估计每个实例的负载，并在特定时间点根据该负载选择性能最佳的实例。
+该算法考虑了多个参数，例如延迟，保持的连接数以及未处理的请求数。每个 RSocket 的运行状况都由可用性参数反映出来，该参数的值从零到一，其中零表示给定实例无法处理任何请求，而一则表示分配的请求完全处理完成的 RSocket。下面的代码片段显示了 RSocket 负载平衡 的最基本示例，该示例连接到响应器的三个不同实例并执行 100 个请求。每次它从LoadBalancedRSocketMono对象获取 RSocket 。
+@Slf4j public class LoadBalancedClient { static final int[] PORTS = new int[]{7000, 7001, 7002}; public static void main(String[] args) { List rsocketSuppliers = Arrays.</description>
+    </item>
+    
+    <item>
+      <title>[译]G1 GC：一个神奇的 JVM 参数，减少你的内存消耗</title>
+      <link>https://andyyin.github.io/blog/g1-gc%E4%B8%80%E4%B8%AA%E7%A5%9E%E5%A5%87%E7%9A%84-jvm-%E5%8F%82%E6%95%B0%E5%87%8F%E5%B0%91%E4%BD%A0%E7%9A%84%E5%86%85%E5%AD%98%E6%B6%88%E8%80%97/</link>
+      <pubDate>Sun, 06 Oct 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://andyyin.github.io/blog/g1-gc%E4%B8%80%E4%B8%AA%E7%A5%9E%E5%A5%87%E7%9A%84-jvm-%E5%8F%82%E6%95%B0%E5%87%8F%E5%B0%91%E4%BD%A0%E7%9A%84%E5%86%85%E5%AD%98%E6%B6%88%E8%80%97/</guid>
+      <description>现代 Java 应用程序有大量的字符串操作，例如，Web 服务 API 调用（即 JSON、REST、SOAP 等）、外部数据源调用（SQL、从 DB 返回的数据等）以及文本解析和文本创建等。因此，字符串对象很容易就占据了约至少 30％ 的内存。然而，这些 String 对象中的大多数都是重复的，这些字符串的重复浪费了大量内存。因此，优化重复字符串对象浪费的内存是 Java 非常受欢迎的功能之一。在 G1 中，Java 就对此功能做了支持。
+G1 做了什么？ G1 GC 算法运行时，它将从内存中删除垃圾对象。它还从内存中删除重复的字符串对象（字符串重复数据删除）。可以通过设置以下 JVM 参数来激活此功能：
+-XX:+UseG1GC -XX:+UseStringDeduplication   注意1：为了使用此功能， 需要在 Java 8 update 20 或更高版本上运行。 注意2：为了使用-XX:+UseStringDeduplication，您需要使用 G1 GC 算法。
+ 让我们看一个例子吧 选择这个简单的示例就是为了研究 JVM 如何处理重复的字符串。让我们通过这个简单的程序来验证 Java 的这个功能。
+ public class StringDeduplicationExample { public static List&amp;lt;String&amp;gt;myStrings = new ArrayList&amp;lt;&amp;gt;(); public static void main(String[] args) throws Exception { for (int counter = 0; counter &amp;lt; 200; ++counter) { for (int secondCounter = 0; secondCounter &amp;lt; 1000; ++secondCounter) { // Add it 1000 times.</description>
+    </item>
+    
+    <item>
       <title>[译]用 RSocket 解决响应式服务之间的通讯-Part 1</title>
-      <link>https://andyyin.github.io/blog/%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E9%80%9A%E8%AE%AF-part-1/</link>
+      <link>https://andyyin.github.io/blog/%E8%AF%91%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E9%80%9A%E8%AE%AF-part-1/</link>
       <pubDate>Fri, 04 Oct 2019 00:00:00 +0000</pubDate>
       
-      <guid>https://andyyin.github.io/blog/%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E9%80%9A%E8%AE%AF-part-1/</guid>
+      <guid>https://andyyin.github.io/blog/%E8%AF%91%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E9%80%9A%E8%AE%AF-part-1/</guid>
       <description>本文是《用 RSocket 解决响应式服务之间的通讯》微型系列的第一篇文章，它将帮助你熟悉 RSocket——一种可能会彻底改变机器之间通讯的新二进制协议。在以下各段中，我们首先讨论当前分布式系统的问题，然后说明如何使用 RSocket 解决这些问题。本文聚焦于微服务之间的通信与 RSocket 交互模型。
 分布式系统中的通讯问题 确实，微服务无处不在。从部署和维护非常麻烦的单体应用程序到完全分布式、微型、可扩展的微服务，我们经历了漫长的过程。微服务架构设计有很多好处。但是，它也有缺点。首先，为了向客户交付最终产品，服务之间必须交换大量数据。在单体应用程序中这不是问题，因为它整个通信都在单个 JVM 进程中进行。而在“微服务架构”中，部署在单独的容器中服务需要通过内部或外部网络进行通信。此时，“网络”是一等公民。如果在云上运行应用程序，事情将变得更加复杂。在这种情况下，网络问题和延迟增加将是不可避免的事情。与其尝试解决网络问题，不如设计具有弹性的体系结构，让其即使在网络抖动的情况下也能完全正常运行，这样岂不是更好。
 我们来更深入地研究下微服务、数据、通信和云的概念。试想一下，对于一般的企业级系统，外部可以通过网站和移动 App 访问，或者通过小型外部设备（如家用加热控制器）与其进行交互。这些系统都是由多个微服务组成，这些微服务大多数是用 Java 编写的，其中一小部分是 Python 和 node.js 实现的组件，另外，为了确保整个系统高度可用，所有服务之间的传输数据都需要跨多个可用区进行复制备份。

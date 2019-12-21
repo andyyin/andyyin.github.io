@@ -48,6 +48,15 @@
     </item>
     
     <item>
+      <title>Eclipse MAT</title>
+      <link>https://andyyin.github.io/tags/eclipse-mat/</link>
+      <pubDate>Fri, 25 Oct 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://andyyin.github.io/tags/eclipse-mat/</guid>
+      <description></description>
+    </item>
+    
+    <item>
       <title>FinalReference</title>
       <link>https://andyyin.github.io/tags/finalreference/</link>
       <pubDate>Sat, 23 Feb 2019 00:00:00 +0000</pubDate>
@@ -66,9 +75,18 @@
     </item>
     
     <item>
+      <title>G1</title>
+      <link>https://andyyin.github.io/tags/g1/</link>
+      <pubDate>Sun, 06 Oct 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://andyyin.github.io/tags/g1/</guid>
+      <description></description>
+    </item>
+    
+    <item>
       <title>GC</title>
       <link>https://andyyin.github.io/tags/gc/</link>
-      <pubDate>Wed, 02 Oct 2019 00:00:00 +0000</pubDate>
+      <pubDate>Sun, 06 Oct 2019 00:00:00 +0000</pubDate>
       
       <guid>https://andyyin.github.io/tags/gc/</guid>
       <description></description>
@@ -93,9 +111,18 @@
     </item>
     
     <item>
+      <title>Incoming References</title>
+      <link>https://andyyin.github.io/tags/incoming-references/</link>
+      <pubDate>Fri, 25 Oct 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://andyyin.github.io/tags/incoming-references/</guid>
+      <description></description>
+    </item>
+    
+    <item>
       <title>JVM</title>
       <link>https://andyyin.github.io/tags/jvm/</link>
-      <pubDate>Wed, 02 Oct 2019 00:00:00 +0000</pubDate>
+      <pubDate>Sun, 06 Oct 2019 00:00:00 +0000</pubDate>
       
       <guid>https://andyyin.github.io/tags/jvm/</guid>
       <description></description>
@@ -120,6 +147,15 @@
     </item>
     
     <item>
+      <title>Outgoing References</title>
+      <link>https://andyyin.github.io/tags/outgoing-references/</link>
+      <pubDate>Fri, 25 Oct 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://andyyin.github.io/tags/outgoing-references/</guid>
+      <description></description>
+    </item>
+    
+    <item>
       <title>PhantomReference</title>
       <link>https://andyyin.github.io/tags/phantomreference/</link>
       <pubDate>Fri, 02 Feb 2018 00:00:00 +0000</pubDate>
@@ -131,9 +167,18 @@
     <item>
       <title>RSocket</title>
       <link>https://andyyin.github.io/tags/rsocket/</link>
-      <pubDate>Fri, 04 Oct 2019 00:00:00 +0000</pubDate>
+      <pubDate>Mon, 18 Nov 2019 00:00:00 +0000</pubDate>
       
       <guid>https://andyyin.github.io/tags/rsocket/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Retained Heap</title>
+      <link>https://andyyin.github.io/tags/retained-heap/</link>
+      <pubDate>Wed, 23 Oct 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://andyyin.github.io/tags/retained-heap/</guid>
       <description></description>
     </item>
     
@@ -143,6 +188,15 @@
       <pubDate>Thu, 09 May 2019 00:00:00 +0000</pubDate>
       
       <guid>https://andyyin.github.io/tags/stw/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Shallow Heap</title>
+      <link>https://andyyin.github.io/tags/shallow-heap/</link>
+      <pubDate>Wed, 23 Oct 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://andyyin.github.io/tags/shallow-heap/</guid>
       <description></description>
     </item>
     

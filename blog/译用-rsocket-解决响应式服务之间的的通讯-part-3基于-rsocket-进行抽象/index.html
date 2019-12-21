@@ -1,0 +1,1387 @@
+<!DOCTYPE HTML>
+
+<html>
+    <head>
+        <script type="application/ld+json">
+    {
+        "@context" : "http://schema.org",
+        "@type" : "BlogPosting",
+        "mainEntityOfPage": {
+             "@type": "WebPage",
+             "@id": "https://andyyin.github.io"
+        },
+        "articleSection" : "blog",
+        "name" : "[译]用 RSocket 解决响应式服务之间的的通讯-Part 3：基于 RSocket 进行抽象",
+        "headline" : "[译]用 RSocket 解决响应式服务之间的的通讯-Part 3：基于 RSocket 进行抽象",
+        "description" : "如果你看过本系列的前两篇文章，应该已经已经发现 RSocket 提供了一些底层的 API。可以直接使用交互模型中的方法进行操作，而且可以没有任何限制来回发送帧。这些基础的 API 为我们提供了许多自由和控制权，但是它可能会引入额外的问题，尤其是与微服务之间的契约相关的问题。
+为了解决这些问题，我们可以使用 RSocket 作为通用抽象层。有两种可用的解决方案：RSocket RPC 或者与 Spring Framework集成。在以下各节中，我们将简要讨论它们。
+基于 RSocket 的 RPC 保持微服务之间的契约干净清晰是分布式系统的关键问题之一。为了确保应用程序可以交换数据，我们可以利用 RPC（远程过程调用）。幸运的是，RSocket 具有专用的 RPC 模块，它使用 Protobuf 作为序列化工具，因此，我们可以从 RSocket 的性能中受益并且同时具有保持契约的能力。通过将生成的服务和对象与 RSocket 接受器结合在一起，我们可以启动完全可操作的 RPC 服务端，并使用 RPC 客户端轻松使用它。
+首先，我们需要定义服务和对象。在下面的示例中，我们创建了具有四个方法的简单的CustomerService服务，它们每个表示交互模型相互不同的方法。
+syntax = &quot;proto3&quot;; option java_multiple_files = true; option java_outer_classname = &quot;ServiceProto&quot;; package com.rsocket.rpc; import &quot;google/protobuf/empty.proto&quot;; message SingleCustomerRequest { string id = 1; } message MultipleCustomersRequest { repeated string ids = 1; } message CustomerResponse { string id = 1; string name = 2; } service CustomerService { rpc getCustomer(SingleCustomerRequest) returns (CustomerResponse) {} //request-response rpc getCustomers(MultipleCustomersRequest) returns (stream CustomerResponse) {} //request-stream rpc deleteCustomer(SingleCustomerRequest) returns (google.",
+        "inLanguage" : "zh",
+        "author" : "",
+        "creator" : "",
+        "publisher": "",
+        "accountablePerson" : "",
+        "copyrightHolder" : "",
+        "copyrightYear" : "2019",
+        "datePublished": "2019-11-18 00:00:00 &#43;0000 UTC",
+        "dateModified" : "2019-11-18 00:00:00 &#43;0000 UTC",
+        "url" : "https://andyyin.github.io/blog/%E8%AF%91%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E7%9A%84%E9%80%9A%E8%AE%AF-part-3%E5%9F%BA%E4%BA%8E-rsocket-%E8%BF%9B%E8%A1%8C%E6%8A%BD%E8%B1%A1/",
+        "wordCount" : "773",
+        "keywords" : [ "RSocket","Blog" ]
+    }
+    </script>
+        
+            
+                <title>[译]用 RSocket 解决响应式服务之间的的通讯-Part 3：基于 RSocket 进行抽象</title>
+            
+        
+
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="generator" content="Hugo 0.54.0" />
+        
+
+
+        
+            <meta name="author" content="涤生">
+        
+        
+            
+                <meta name="description" content="涤生的博客，主要分享 Java、JVM、中间件、架构设计、性能优化、Linux 底层技术等，欢迎支持加关注。涤生，姓名殷琦，目前就职于某大型互联网公司基础架构部，主要负责微服务框架、服务治理、Serverless 相关工作。 《高可用可伸缩微服务架构：基于Dubbo、Spring Cloud和Service Mesh》的作者之一，《Knative 入门》图书翻译之一。">
+            
+        
+
+        <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="[译]用 RSocket 解决响应式服务之间的的通讯-Part 3：基于 RSocket 进行抽象"/>
+<meta name="twitter:description" content="如果你看过本系列的前两篇文章，应该已经已经发现 RSocket 提供了一些底层的 API。可以直接使用交互模型中的方法进行操作，而且可以没有任何限制来回发送帧。这些基础的 API 为我们提供了许多自由和控制权，但是它可能会引入额外的问题，尤其是与微服务之间的契约相关的问题。
+为了解决这些问题，我们可以使用 RSocket 作为通用抽象层。有两种可用的解决方案：RSocket RPC 或者与 Spring Framework集成。在以下各节中，我们将简要讨论它们。
+基于 RSocket 的 RPC 保持微服务之间的契约干净清晰是分布式系统的关键问题之一。为了确保应用程序可以交换数据，我们可以利用 RPC（远程过程调用）。幸运的是，RSocket 具有专用的 RPC 模块，它使用 Protobuf 作为序列化工具，因此，我们可以从 RSocket 的性能中受益并且同时具有保持契约的能力。通过将生成的服务和对象与 RSocket 接受器结合在一起，我们可以启动完全可操作的 RPC 服务端，并使用 RPC 客户端轻松使用它。
+首先，我们需要定义服务和对象。在下面的示例中，我们创建了具有四个方法的简单的CustomerService服务，它们每个表示交互模型相互不同的方法。
+syntax = &quot;proto3&quot;; option java_multiple_files = true; option java_outer_classname = &quot;ServiceProto&quot;; package com.rsocket.rpc; import &quot;google/protobuf/empty.proto&quot;; message SingleCustomerRequest { string id = 1; } message MultipleCustomersRequest { repeated string ids = 1; } message CustomerResponse { string id = 1; string name = 2; } service CustomerService { rpc getCustomer(SingleCustomerRequest) returns (CustomerResponse) {} //request-response rpc getCustomers(MultipleCustomersRequest) returns (stream CustomerResponse) {} //request-stream rpc deleteCustomer(SingleCustomerRequest) returns (google."/>
+
+        <meta property="og:title" content="[译]用 RSocket 解决响应式服务之间的的通讯-Part 3：基于 RSocket 进行抽象" />
+<meta property="og:description" content="如果你看过本系列的前两篇文章，应该已经已经发现 RSocket 提供了一些底层的 API。可以直接使用交互模型中的方法进行操作，而且可以没有任何限制来回发送帧。这些基础的 API 为我们提供了许多自由和控制权，但是它可能会引入额外的问题，尤其是与微服务之间的契约相关的问题。
+为了解决这些问题，我们可以使用 RSocket 作为通用抽象层。有两种可用的解决方案：RSocket RPC 或者与 Spring Framework集成。在以下各节中，我们将简要讨论它们。
+基于 RSocket 的 RPC 保持微服务之间的契约干净清晰是分布式系统的关键问题之一。为了确保应用程序可以交换数据，我们可以利用 RPC（远程过程调用）。幸运的是，RSocket 具有专用的 RPC 模块，它使用 Protobuf 作为序列化工具，因此，我们可以从 RSocket 的性能中受益并且同时具有保持契约的能力。通过将生成的服务和对象与 RSocket 接受器结合在一起，我们可以启动完全可操作的 RPC 服务端，并使用 RPC 客户端轻松使用它。
+首先，我们需要定义服务和对象。在下面的示例中，我们创建了具有四个方法的简单的CustomerService服务，它们每个表示交互模型相互不同的方法。
+syntax = &quot;proto3&quot;; option java_multiple_files = true; option java_outer_classname = &quot;ServiceProto&quot;; package com.rsocket.rpc; import &quot;google/protobuf/empty.proto&quot;; message SingleCustomerRequest { string id = 1; } message MultipleCustomersRequest { repeated string ids = 1; } message CustomerResponse { string id = 1; string name = 2; } service CustomerService { rpc getCustomer(SingleCustomerRequest) returns (CustomerResponse) {} //request-response rpc getCustomers(MultipleCustomersRequest) returns (stream CustomerResponse) {} //request-stream rpc deleteCustomer(SingleCustomerRequest) returns (google." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://andyyin.github.io/blog/%E8%AF%91%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E7%9A%84%E9%80%9A%E8%AE%AF-part-3%E5%9F%BA%E4%BA%8E-rsocket-%E8%BF%9B%E8%A1%8C%E6%8A%BD%E8%B1%A1/" />
+<meta property="article:published_time" content="2019-11-18T00:00:00&#43;00:00"/>
+<meta property="article:modified_time" content="2019-11-18T00:00:00&#43;00:00"/>
+
+        <meta property="og:image" content="https://andyyin.github.io/images/logo.png">
+        <meta property="og:image:type" content="image/png">
+        <meta property="og:image:width" content="512">
+        <meta property="og:image:height" content="512">
+        
+<meta itemprop="name" content="[译]用 RSocket 解决响应式服务之间的的通讯-Part 3：基于 RSocket 进行抽象">
+<meta itemprop="description" content="如果你看过本系列的前两篇文章，应该已经已经发现 RSocket 提供了一些底层的 API。可以直接使用交互模型中的方法进行操作，而且可以没有任何限制来回发送帧。这些基础的 API 为我们提供了许多自由和控制权，但是它可能会引入额外的问题，尤其是与微服务之间的契约相关的问题。
+为了解决这些问题，我们可以使用 RSocket 作为通用抽象层。有两种可用的解决方案：RSocket RPC 或者与 Spring Framework集成。在以下各节中，我们将简要讨论它们。
+基于 RSocket 的 RPC 保持微服务之间的契约干净清晰是分布式系统的关键问题之一。为了确保应用程序可以交换数据，我们可以利用 RPC（远程过程调用）。幸运的是，RSocket 具有专用的 RPC 模块，它使用 Protobuf 作为序列化工具，因此，我们可以从 RSocket 的性能中受益并且同时具有保持契约的能力。通过将生成的服务和对象与 RSocket 接受器结合在一起，我们可以启动完全可操作的 RPC 服务端，并使用 RPC 客户端轻松使用它。
+首先，我们需要定义服务和对象。在下面的示例中，我们创建了具有四个方法的简单的CustomerService服务，它们每个表示交互模型相互不同的方法。
+syntax = &quot;proto3&quot;; option java_multiple_files = true; option java_outer_classname = &quot;ServiceProto&quot;; package com.rsocket.rpc; import &quot;google/protobuf/empty.proto&quot;; message SingleCustomerRequest { string id = 1; } message MultipleCustomersRequest { repeated string ids = 1; } message CustomerResponse { string id = 1; string name = 2; } service CustomerService { rpc getCustomer(SingleCustomerRequest) returns (CustomerResponse) {} //request-response rpc getCustomers(MultipleCustomersRequest) returns (stream CustomerResponse) {} //request-stream rpc deleteCustomer(SingleCustomerRequest) returns (google.">
+
+
+<meta itemprop="datePublished" content="2019-11-18T00:00:00&#43;00:00" />
+<meta itemprop="dateModified" content="2019-11-18T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="773">
+
+
+
+<meta itemprop="keywords" content="RSocket," />
+
+        
+
+        
+            
+        
+
+        
+        
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/atom-one-light.min.css">
+            <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway:400,800,900|Source+Sans+Pro:400,700">
+            <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.1.25/jquery.fancybox.min.css">
+            <link rel="stylesheet" href="https://andyyin.github.io/css/main.css">
+            <link rel="stylesheet" href="https://andyyin.github.io/css/add-on.css">
+            <link rel="stylesheet" href="https://andyyin.github.io/css/academicons.min.css">
+        
+
+        
+            
+                
+            
+        
+
+
+  
+    
+    <link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+  
+
+
+      
+    </head>
+    <body>
+
+      
+      <div id="wrapper">
+
+    
+    
+<header id="header">
+    
+      <h1><a href="https://andyyin.github.io/">涤生|个人博客</a></h1>
+    
+
+    <nav class="links">
+        <ul>
+            
+                <li>
+                    <a href="https://andyyin.github.io/">
+                            <i class="fa fa-home">&nbsp;</i>主页
+                    </a>
+                </li>
+            
+                <li>
+                    <a href="https://andyyin.github.io/blog/">
+                            <i class="fa fa-newspaper-o">&nbsp;</i>博客
+                    </a>
+                </li>
+            
+                <li>
+                    <a href="https://andyyin.github.io/categories/">
+                            <i class="fa fa-sitemap">&nbsp;</i>分类
+                    </a>
+                </li>
+            
+                <li>
+                    <a href="https://andyyin.github.io/about/">
+                            <i class="fa fa-id-card-o">&nbsp;</i>关于
+                    </a>
+                </li>
+            
+                <li>
+                    <a href="https://andyyin.github.io/links/">
+                            <i class="fa fa-link">&nbsp;</i>友链
+                    </a>
+                </li>
+            
+        </ul>
+    </nav>
+    <nav class="main">
+        <ul>
+            
+            <li id="share-nav" class="share-menu" style="display:none;">
+                <a class="fa-share-alt" href="#share-menu">Share</a>
+            </li>
+            
+            <li class="search">
+                <a class="fa-search" href="#search">Search</a>
+                <form id="search" method="get" action="//google.com/search">
+                    <input type="text" name="q" placeholder="Search" />
+                    <input type="hidden" name="as_sitesearch" value="https://andyyin.github.io">
+                </form>
+            </li>
+            <li class="menu">
+                <a class="fa-bars" href="#menu">Menu</a>
+            </li>
+        </ul>
+    </nav>
+</header>
+
+
+<section id="menu">
+
+    
+        <section>
+            <form class="search" method="get" action="//google.com/search">
+                <input type="text" name="q" placeholder="Search" />
+                <input type="hidden" name="as_sitesearch" value="https://andyyin.github.io">
+            </form>
+        </section>
+
+    
+        <section>
+            <ul class="links">
+                
+                    <li>
+                        <a href="https://andyyin.github.io/">
+                            <h3>
+                                <i class="fa fa-home">&nbsp;</i>主页
+                            </h3>
+                        </a>
+                    </li>
+                
+                    <li>
+                        <a href="https://andyyin.github.io/blog/">
+                            <h3>
+                                <i class="fa fa-newspaper-o">&nbsp;</i>博客
+                            </h3>
+                        </a>
+                    </li>
+                
+                    <li>
+                        <a href="https://andyyin.github.io/categories/">
+                            <h3>
+                                <i class="fa fa-sitemap">&nbsp;</i>分类
+                            </h3>
+                        </a>
+                    </li>
+                
+                    <li>
+                        <a href="https://andyyin.github.io/about/">
+                            <h3>
+                                <i class="fa fa-id-card-o">&nbsp;</i>关于
+                            </h3>
+                        </a>
+                    </li>
+                
+                    <li>
+                        <a href="https://andyyin.github.io/links/">
+                            <h3>
+                                <i class="fa fa-link">&nbsp;</i>友链
+                            </h3>
+                        </a>
+                    </li>
+                
+            </ul>
+        </section>
+
+    
+        <section class="recent-posts">
+            <div class="mini-posts">
+                <header>
+                    <h3>Recent Posts</h3>
+                </header>
+                
+
+                
+                    
+                
+
+                
+                        <article class="mini-post">
+                            <header>
+                                <h3><a href="https://andyyin.github.io/blog/%E8%AF%91%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E7%9A%84%E9%80%9A%E8%AE%AF-part-3%E5%9F%BA%E4%BA%8E-rsocket-%E8%BF%9B%E8%A1%8C%E6%8A%BD%E8%B1%A1/">[译]用 RSocket 解决响应式服务之间的的通讯-Part 3：基于 RSocket 进行抽象</a></h3>
+                                
+                                <time class="published" datetime=
+                                    '2019-11-18'>
+                                    November 18, 2019</time>
+                            </header>
+                            
+
+                        </article>
+                
+                        <article class="mini-post">
+                            <header>
+                                <h3><a href="https://andyyin.github.io/blog/eclipse-mat-incoming-outgoing-references-%E4%BD%A0%E7%9C%9F%E7%9A%84%E4%BA%86%E8%A7%A3%E5%90%97/">[译]Eclipse MAT — Incoming, Outgoing References 你真的了解吗？</a></h3>
+                                
+                                <time class="published" datetime=
+                                    '2019-10-25'>
+                                    October 25, 2019</time>
+                            </header>
+                            
+
+                        </article>
+                
+                        <article class="mini-post">
+                            <header>
+                                <h3><a href="https://andyyin.github.io/blog/eclipse-mat-shallow-heap-vs-retained-heap-%E4%BD%A0%E7%90%86%E8%A7%A3%E7%9A%84%E5%AF%B9%E5%90%97/">[译]Eclipse MAT: Shallow Heap Vs Retained Heap 你理解的对吗?</a></h3>
+                                
+                                <time class="published" datetime=
+                                    '2019-10-23'>
+                                    October 23, 2019</time>
+                            </header>
+                            
+
+                        </article>
+                
+                        <article class="mini-post">
+                            <header>
+                                <h3><a href="https://andyyin.github.io/blog/%E8%AF%91%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E9%80%9A%E8%AE%AF-part-2%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1%E5%92%8C%E5%8F%AF%E6%81%A2%E5%A4%8D%E6%80%A7/">[译]用 RSocket 解决响应式服务之间的通讯-Part 2：负载均衡和可恢复性</a></h3>
+                                
+                                <time class="published" datetime=
+                                    '2019-10-07'>
+                                    October 7, 2019</time>
+                            </header>
+                            
+
+                        </article>
+                
+                        <article class="mini-post">
+                            <header>
+                                <h3><a href="https://andyyin.github.io/blog/g1-gc%E4%B8%80%E4%B8%AA%E7%A5%9E%E5%A5%87%E7%9A%84-jvm-%E5%8F%82%E6%95%B0%E5%87%8F%E5%B0%91%E4%BD%A0%E7%9A%84%E5%86%85%E5%AD%98%E6%B6%88%E8%80%97/">[译]G1 GC：一个神奇的 JVM 参数，减少你的内存消耗</a></h3>
+                                
+                                <time class="published" datetime=
+                                    '2019-10-06'>
+                                    October 6, 2019</time>
+                            </header>
+                            
+
+                        </article>
+                
+
+                
+                    <a href=
+                        
+                            /blog/
+                        
+                        class="button">更多</a>
+                
+            </div>
+        </section>
+
+    
+        
+</section>
+
+    <section id="share-menu">
+    <section id="social-share-nav">
+        <ul class="links">
+            <header>
+                <h3>Share this post <i class="fa fa-smile-o"></i></h3>
+            </header>
+            
+
+
+
+<li>
+  <a href="//twitter.com/share?url=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E8%25AF%2591%25E7%2594%25A8-rsocket-%25E8%25A7%25A3%25E5%2586%25B3%25E5%2593%258D%25E5%25BA%2594%25E5%25BC%258F%25E6%259C%258D%25E5%258A%25A1%25E4%25B9%258B%25E9%2597%25B4%25E7%259A%2584%25E7%259A%2584%25E9%2580%259A%25E8%25AE%25AF-part-3%25E5%259F%25BA%25E4%25BA%258E-rsocket-%25E8%25BF%259B%25E8%25A1%258C%25E6%258A%25BD%25E8%25B1%25A1%2f&amp;text=%5b%e8%af%91%5d%e7%94%a8%20RSocket%20%e8%a7%a3%e5%86%b3%e5%93%8d%e5%ba%94%e5%bc%8f%e6%9c%8d%e5%8a%a1%e4%b9%8b%e9%97%b4%e7%9a%84%e7%9a%84%e9%80%9a%e8%ae%af-Part%203%ef%bc%9a%e5%9f%ba%e4%ba%8e%20RSocket%20%e8%bf%9b%e8%a1%8c%e6%8a%bd%e8%b1%a1&amp;via=" target="_blank" class="share-btn twitter">
+    <i class="fa fa-twitter"></i>
+    <p>Twitter</p>
+    </a>
+</li>
+
+
+
+
+<li>
+  <a href="//plus.google.com/share?url=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E8%25AF%2591%25E7%2594%25A8-rsocket-%25E8%25A7%25A3%25E5%2586%25B3%25E5%2593%258D%25E5%25BA%2594%25E5%25BC%258F%25E6%259C%258D%25E5%258A%25A1%25E4%25B9%258B%25E9%2597%25B4%25E7%259A%2584%25E7%259A%2584%25E9%2580%259A%25E8%25AE%25AF-part-3%25E5%259F%25BA%25E4%25BA%258E-rsocket-%25E8%25BF%259B%25E8%25A1%258C%25E6%258A%25BD%25E8%25B1%25A1%2f" target="_blank" class="share-btn google-plus">
+    <i class="fa fa-google-plus"></i>
+    <p>Google+</p>
+  </a>
+</li>
+
+
+
+
+
+<li>
+  <a href="//www.facebook.com/sharer/sharer.php?u=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E8%25AF%2591%25E7%2594%25A8-rsocket-%25E8%25A7%25A3%25E5%2586%25B3%25E5%2593%258D%25E5%25BA%2594%25E5%25BC%258F%25E6%259C%258D%25E5%258A%25A1%25E4%25B9%258B%25E9%2597%25B4%25E7%259A%2584%25E7%259A%2584%25E9%2580%259A%25E8%25AE%25AF-part-3%25E5%259F%25BA%25E4%25BA%258E-rsocket-%25E8%25BF%259B%25E8%25A1%258C%25E6%258A%25BD%25E8%25B1%25A1%2f" target="_blank" class="share-btn facebook">
+    <i class="fa fa-facebook"></i>
+    <p>Facebook</p>
+    </a>
+</li>
+
+
+
+
+<li>
+  <a href="//reddit.com/submit?url=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E8%25AF%2591%25E7%2594%25A8-rsocket-%25E8%25A7%25A3%25E5%2586%25B3%25E5%2593%258D%25E5%25BA%2594%25E5%25BC%258F%25E6%259C%258D%25E5%258A%25A1%25E4%25B9%258B%25E9%2597%25B4%25E7%259A%2584%25E7%259A%2584%25E9%2580%259A%25E8%25AE%25AF-part-3%25E5%259F%25BA%25E4%25BA%258E-rsocket-%25E8%25BF%259B%25E8%25A1%258C%25E6%258A%25BD%25E8%25B1%25A1%2f&amp;title=%5b%e8%af%91%5d%e7%94%a8%20RSocket%20%e8%a7%a3%e5%86%b3%e5%93%8d%e5%ba%94%e5%bc%8f%e6%9c%8d%e5%8a%a1%e4%b9%8b%e9%97%b4%e7%9a%84%e7%9a%84%e9%80%9a%e8%ae%af-Part%203%ef%bc%9a%e5%9f%ba%e4%ba%8e%20RSocket%20%e8%bf%9b%e8%a1%8c%e6%8a%bd%e8%b1%a1" target="_blank" class="share-btn reddit">
+    <i class="fa fa-reddit-alien"></i>
+    <p>Reddit</p>
+  </a>
+</li>
+
+
+
+
+<li>
+  <a href="//www.linkedin.com/shareArticle?url=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E8%25AF%2591%25E7%2594%25A8-rsocket-%25E8%25A7%25A3%25E5%2586%25B3%25E5%2593%258D%25E5%25BA%2594%25E5%25BC%258F%25E6%259C%258D%25E5%258A%25A1%25E4%25B9%258B%25E9%2597%25B4%25E7%259A%2584%25E7%259A%2584%25E9%2580%259A%25E8%25AE%25AF-part-3%25E5%259F%25BA%25E4%25BA%258E-rsocket-%25E8%25BF%259B%25E8%25A1%258C%25E6%258A%25BD%25E8%25B1%25A1%2f&amp;title=%5b%e8%af%91%5d%e7%94%a8%20RSocket%20%e8%a7%a3%e5%86%b3%e5%93%8d%e5%ba%94%e5%bc%8f%e6%9c%8d%e5%8a%a1%e4%b9%8b%e9%97%b4%e7%9a%84%e7%9a%84%e9%80%9a%e8%ae%af-Part%203%ef%bc%9a%e5%9f%ba%e4%ba%8e%20RSocket%20%e8%bf%9b%e8%a1%8c%e6%8a%bd%e8%b1%a1" target="_blank" class="share-btn linkedin">
+      <i class="fa fa-linkedin"></i>
+      <p>LinkedIn</p>
+    </a>
+</li>
+
+
+
+
+<li>
+  <a href="//www.stumbleupon.com/submit?url=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E8%25AF%2591%25E7%2594%25A8-rsocket-%25E8%25A7%25A3%25E5%2586%25B3%25E5%2593%258D%25E5%25BA%2594%25E5%25BC%258F%25E6%259C%258D%25E5%258A%25A1%25E4%25B9%258B%25E9%2597%25B4%25E7%259A%2584%25E7%259A%2584%25E9%2580%259A%25E8%25AE%25AF-part-3%25E5%259F%25BA%25E4%25BA%258E-rsocket-%25E8%25BF%259B%25E8%25A1%258C%25E6%258A%25BD%25E8%25B1%25A1%2f&amp;title=%5b%e8%af%91%5d%e7%94%a8%20RSocket%20%e8%a7%a3%e5%86%b3%e5%93%8d%e5%ba%94%e5%bc%8f%e6%9c%8d%e5%8a%a1%e4%b9%8b%e9%97%b4%e7%9a%84%e7%9a%84%e9%80%9a%e8%ae%af-Part%203%ef%bc%9a%e5%9f%ba%e4%ba%8e%20RSocket%20%e8%bf%9b%e8%a1%8c%e6%8a%bd%e8%b1%a1" target="_blank" class="share-btn stumbleupon">
+    <i class="fa fa-stumbleupon"></i>
+    <p>StumbleUpon</p>
+  </a>
+</li>
+
+
+
+
+<li>
+  <a href="//www.pinterest.com/pin/create/button/?url=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E8%25AF%2591%25E7%2594%25A8-rsocket-%25E8%25A7%25A3%25E5%2586%25B3%25E5%2593%258D%25E5%25BA%2594%25E5%25BC%258F%25E6%259C%258D%25E5%258A%25A1%25E4%25B9%258B%25E9%2597%25B4%25E7%259A%2584%25E7%259A%2584%25E9%2580%259A%25E8%25AE%25AF-part-3%25E5%259F%25BA%25E4%25BA%258E-rsocket-%25E8%25BF%259B%25E8%25A1%258C%25E6%258A%25BD%25E8%25B1%25A1%2f&amp;description=%5b%e8%af%91%5d%e7%94%a8%20RSocket%20%e8%a7%a3%e5%86%b3%e5%93%8d%e5%ba%94%e5%bc%8f%e6%9c%8d%e5%8a%a1%e4%b9%8b%e9%97%b4%e7%9a%84%e7%9a%84%e9%80%9a%e8%ae%af-Part%203%ef%bc%9a%e5%9f%ba%e4%ba%8e%20RSocket%20%e8%bf%9b%e8%a1%8c%e6%8a%bd%e8%b1%a1" target="_blank" class="share-btn pinterest">
+    <i class="fa fa-pinterest-p"></i>
+    <p>Pinterest</p>
+  </a>
+</li>
+
+
+
+
+<li>
+  <a href="mailto:?subject=Check out this post by %e6%b6%a4%e7%94%9f&amp;body=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E8%25AF%2591%25E7%2594%25A8-rsocket-%25E8%25A7%25A3%25E5%2586%25B3%25E5%2593%258D%25E5%25BA%2594%25E5%25BC%258F%25E6%259C%258D%25E5%258A%25A1%25E4%25B9%258B%25E9%2597%25B4%25E7%259A%2584%25E7%259A%2584%25E9%2580%259A%25E8%25AE%25AF-part-3%25E5%259F%25BA%25E4%25BA%258E-rsocket-%25E8%25BF%259B%25E8%25A1%258C%25E6%258A%25BD%25E8%25B1%25A1%2f" target="_blank" class="share-btn email">
+    <i class="fa fa-envelope"></i>
+    <p>Email</p>
+  </a>
+</li>
+
+
+        </ul>
+    </section>
+</section>
+
+    
+    <div id="main">
+        
+        
+        <article class="post">
+  <header>
+    <div class="title">
+        
+            <h1><a href="https://andyyin.github.io/blog/%E8%AF%91%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E7%9A%84%E9%80%9A%E8%AE%AF-part-3%E5%9F%BA%E4%BA%8E-rsocket-%E8%BF%9B%E8%A1%8C%E6%8A%BD%E8%B1%A1/">[译]用 RSocket 解决响应式服务之间的的通讯-Part 3：基于 RSocket 进行抽象</a></h1>
+            
+        
+        
+    </div>
+    <div class="meta">
+        
+
+        <time class="published"
+            datetime='2019-11-18'>
+            2019-11-18</time>
+        <span class="author">涤生</span>
+        
+            <p>4 分钟阅读</p>
+        
+        
+    </div>
+</header>
+
+
+  
+
+  
+
+  <div id="content">
+    
+
+<p>如果你看过本系列的前两篇文章，应该已经已经发现 RSocket 提供了一些底层的 API。可以直接使用交互模型中的方法进行操作，而且可以没有任何限制来回发送帧。这些基础的 API 为我们提供了许多自由和控制权，但是它可能会引入额外的问题，尤其是与微服务之间的契约相关的问题。</p>
+
+<p>为了解决这些问题，我们可以使用 RSocket 作为通用抽象层。有两种可用的解决方案：<strong>RSocket RPC</strong> 或者与 <strong>Spring Framework集成</strong>。在以下各节中，我们将简要讨论它们。</p>
+
+<p><img src="https://andyyin.github.io/img/2019/11/rsocket3/cover2.jpg" alt="" /></p>
+
+<h2 id="基于-rsocket-的-rpc">基于 RSocket 的 RPC</h2>
+
+<p>保持微服务之间的契约干净清晰是分布式系统的关键问题之一。为了确保应用程序可以交换数据，我们可以利用 RPC（远程过程调用）。幸运的是，RSocket 具有专用的 <a href="https://github.com/rsocket/rsocket-rpc-java">RPC 模块</a>，它使用 Protobuf 作为序列化工具，因此，我们可以从 RSocket 的性能中受益并且同时具有保持契约的能力。通过将生成的服务和对象与 RSocket 接受器结合在一起，我们可以启动完全可操作的 RPC 服务端，并使用 RPC 客户端轻松使用它。</p>
+
+<p>首先，我们需要定义服务和对象。在下面的示例中，我们创建了具有四个方法的简单的<code>CustomerService</code>服务，它们每个表示交互模型相互不同的方法。</p>
+
+<pre><code>syntax = &quot;proto3&quot;;
+option java_multiple_files = true;
+option java_outer_classname = &quot;ServiceProto&quot;;
+package com.rsocket.rpc;
+import &quot;google/protobuf/empty.proto&quot;;
+message SingleCustomerRequest {
+    string id = 1;
+}
+message MultipleCustomersRequest {
+    repeated string ids = 1;
+}
+message CustomerResponse {
+    string id = 1;
+    string name = 2;
+}
+service CustomerService {
+    rpc getCustomer(SingleCustomerRequest) returns (CustomerResponse) {} //request-response
+    rpc getCustomers(MultipleCustomersRequest) returns (stream CustomerResponse) {} //request-stream
+    rpc deleteCustomer(SingleCustomerRequest) returns (google.protobuf.Empty) {} //fire'n'forget
+    rpc customerChannel(stream MultipleCustomersRequest) returns (stream CustomerResponse) {} //request-channel
+}
+</code></pre>
+
+<p>其次，我们必须使用上面显示的 proto 文件来生成类。为此，我们可以创建一个 Gradle 任务，如下所示：</p>
+
+<pre><code>protobuf {
+    protoc {
+        artifact = 'com.google.protobuf:protoc:3.6.1'
+    }
+    generatedFilesBaseDir = &quot;${projectDir}/build/generated-sources/&quot;
+    plugins {
+        rsocketRpc {
+            artifact = 'io.rsocket.rpc:rsocket-rpc-protobuf:0.2.17'
+        }
+    }
+    generateProtoTasks {
+        all()*.plugins {
+            rsocketRpc {}
+        }
+    }
+}
+</code></pre>
+
+<p>作为<code>generateProto</code>任务的结果，我们应该能够获得服务接口、服务客户端和服务服务端类</p>
+
+<ul>
+<li><code>CustomerService</code></li>
+<li><code>CustomerServiceClient</code></li>
+<li><code>CustomerServiceServer</code></li>
+</ul>
+
+<p>再次，我们必须实现服务接口（CustomerService）的相关业务逻辑:</p>
+
+<pre><code>public class DefaultCustomerService implements CustomerService {
+        private static final List RANDOM_NAMES = Arrays.asList(&quot;Andrew&quot;, &quot;Joe&quot;, &quot;Matt&quot;, &quot;Rachel&quot;, &quot;Robin&quot;, &quot;Jack&quot;);
+        @Override
+        public Mono getCustomer(SingleCustomerRequest message, ByteBuf metadata) {
+            log.info(&quot;Received 'getCustomer' request [{}]&quot;, message);
+            return Mono.just(CustomerResponse.newBuilder()
+                    .setId(message.getId())
+                    .setName(getRandomName())
+                    .build());
+        }
+        @Override
+        public Flux getCustomers(MultipleCustomersRequest message, ByteBuf metadata) {
+            return Flux.interval(Duration.ofMillis(1000))
+                    .map(time -&gt; CustomerResponse.newBuilder()
+                            .setId(UUID.randomUUID().toString())
+                            .setName(getRandomName())
+                            .build());
+        }
+        @Override
+        public Mono deleteCustomer(SingleCustomerRequest message, ByteBuf metadata) {
+            log.info(&quot;Received 'deleteCustomer' request [{}]&quot;, message);
+            return Mono.just(Empty.newBuilder().build());
+        }
+        @Override
+        public Flux customerChannel(Publisher messages, ByteBuf metadata) {
+            return Flux.from(messages)
+                    .doOnNext(message -&gt; log.info(&quot;Received 'customerChannel' request [{}]&quot;, message))
+                    .map(message -&gt; CustomerResponse.newBuilder()
+                            .setId(UUID.randomUUID().toString())
+                            .setName(getRandomName())
+                            .build());
+        }
+        private String getRandomName() {
+            return RANDOM_NAMES.get(new Random().nextInt(RANDOM_NAMES.size() - 1));
+        }
+}
+</code></pre>
+
+<p>最后，我们可以通过 RSocket 暴露服务。为此，我们必须创建服务端的实例（CustomerServiceServer）并注入服务的实现（DefaultCustomerService）。然后，我们准备创建一个 RSocket 接受器实例。该 API 提供了<code>RequestHandlingRSocket</code>，该服务包装服务端实例，并将契约中定义的端点转换为 RSocket 交互模型中可用的方法。</p>
+
+<pre><code>public class Server {
+    public static void main(String[] args) throws InterruptedException {
+        CustomerServiceServer serviceServer = new CustomerServiceServer(new DefaultCustomerService(), Optional.empty(), Optional.empty());
+        RSocketFactory
+                .receive()
+                .acceptor((setup, sendingSocket) -&gt; Mono.just(
+                        new RequestHandlingRSocket(serviceServer)
+                ))
+                .transport(TcpServerTransport.create(7000))
+                .start()
+                .block();
+        Thread.currentThread().join();
+    }
+}
+</code></pre>
+
+<p>在客户端，实现非常简单。我们需要做的就是创建 RSocket 实例，并通过构造函数将其注入到客户端实例中，然后就可以开始了。</p>
+
+<pre><code>@Slf4j
+public class Client {
+    public static void main(String[] args) {
+        RSocket rSocket = RSocketFactory
+                .connect()
+                .transport(TcpClientTransport.create(7000))
+                .start()
+                .block();
+        CustomerServiceClient customerServiceClient = new CustomerServiceClient(rSocket);
+        customerServiceClient.deleteCustomer(SingleCustomerRequest.newBuilder()
+                .setId(UUID.randomUUID().toString()).build())
+                .block();
+        customerServiceClient.getCustomer(SingleCustomerRequest.newBuilder()
+                .setId(UUID.randomUUID().toString()).build())
+                .doOnNext(response -&gt; log.info(&quot;Received response for 'getCustomer': [{}]&quot;, response))
+                .block();
+        customerServiceClient.getCustomers(MultipleCustomersRequest.newBuilder()
+                .addIds(UUID.randomUUID().toString()).build())
+                .doOnNext(response -&gt; log.info(&quot;Received response for 'getCustomers': [{}]&quot;, response))
+                .subscribe();
+        customerServiceClient.customerChannel(s -&gt; s.onNext(MultipleCustomersRequest.newBuilder()
+                .addIds(UUID.randomUUID().toString())
+                .build()))
+                .doOnNext(customerResponse -&gt; log.info(&quot;Received response for 'customerChannel' [{}]&quot;, customerResponse))
+                .blockLast();
+    }
+}
+</code></pre>
+
+<p>将 RSocket 与 RPC 方法结合使用有助于维护微服务之间的契约，并改善日常开发人员的体验。它适用于不需要完全控制帧的典型场景，但是另一方面，它不限制协议的灵活性。我们仍然可以在同一应用程序中暴露 RPC 端点以及普通的 RSocket 接受器，以便我们可以轻松地为给定用例选择最佳的通信模式。  在 RSocket 上进行 RPC 的情况下，可能会出现一个基本的问题：它比 gRPC 好吗？这个问题没有简单的答案。 RSocket 是一项新技术，它需要一些时间才能达到与 gRPC 相同的成熟度。另一方面，它在两个方面超过了 gRPC：性能（<a href="https://dzone.com/articles/rsocket-vs-grpc-benchmark">这里可以使用基准测试</a>）和灵活性——可以作为传输层用于 RPC 或作为普通消息传递解决方案。  在决定在生产环境中使用哪种软件之前，应该确定 RSocket 是否符合的“早期采用”策略，并且不会使软件面临风险。就个人而言，我建议在不太重要的区域引入 RSocket，然后再扩展到系统的其余部分。</p>
+
+<h2 id="spring-boot-集成">Spring Boot 集成</h2>
+
+<p>第二个可用的解决方案是通过<strong>与 Spring Boot 的集成</strong>提供对 RSocket 的抽象，我们将 RSocket 用作反应式消息传递解决方案，并利用 Spring 注解轻松地将方法与路由连接起来。在下面的示例中，我们实现了两个 Spring Boot 应用程序（请求者和响应者）。响应者通过<code>CustomerController</code>暴露 RSocket 接口，并映射到三个路径：<code>customer</code>、<code>customer-stream</code>和<code>customer-channel</code>。这些映射中的每一个都反映了来自 RSocket 交互模型的不同方法（分别是请求-响应，请求流和通道）。<code>CustomerController</code>还实现了简单的业务逻辑，并返回带有随机名称的<code>CustomerResponse</code>对象，如下例所示：</p>
+
+<pre><code>@Slf4j
+@SpringBootApplication
+public class RSocketResponderApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(RSocketResponderApplication.class);
+    }
+    @Controller
+    public class CustomerController {
+        private final List RANDOM_NAMES = Arrays.asList(&quot;Andrew&quot;, &quot;Joe&quot;, &quot;Matt&quot;, &quot;Rachel&quot;, &quot;Robin&quot;, &quot;Jack&quot;);
+        @MessageMapping(&quot;customer&quot;)
+        CustomerResponse getCustomer(CustomerRequest customerRequest) {
+            return new CustomerResponse(customerRequest.getId(), getRandomName());
+        }
+        @MessageMapping(&quot;customer-stream&quot;)
+        Flux getCustomers(MultipleCustomersRequest multipleCustomersRequest) {
+            return Flux.range(0, multipleCustomersRequest.getIds().size())
+                    .delayElements(Duration.ofMillis(500))
+                    .map(i -&gt; new CustomerResponse(multipleCustomersRequest.getIds().get(i), getRandomName()));
+        }
+        @MessageMapping(&quot;customer-channel&quot;)
+        Flux getCustomersChannel(Flux requests) {
+            return Flux.from(requests)
+                    .doOnNext(message -&gt; log.info(&quot;Received 'customerChannel' request [{}]&quot;, message))
+                    .map(message -&gt; new CustomerResponse(message.getId(), getRandomName()));
+        }
+        private String getRandomName() {
+            return RANDOM_NAMES.get(new Random().nextInt(RANDOM_NAMES.size() - 1));
+        }
+    }
+}
+</code></pre>
+
+<p>请注意，下面提供的示例基于 Spring Boot RSocket starter 2.2.0.M4 版本，这意味着它不是正式版本，API 可能会更改。</p>
+
+<p>值得注意的是，Spring Boot 会自动检测类路径上的 RSocket 库并启动服务端。我们需要做的就是指定端口：</p>
+
+<pre><code>spring:
+  rsocket:
+    server:
+      port: 7000
+</code></pre>
+
+<p>这几行代码和配置设置了完全可操作的响应者程序。  让我们再看一下请求方。在这里，我们实现了<code>CustomerServiceAdapter</code>，它负责与响应者进行通信。它使用<code>RSocketRequester</code> bean 封装 RSocket 实例，该 bean 中还包含数据类型以及封装在 RSocketStrategies 对象中编码/解码的详细信息。  再用反应式的方式给 RSocketRequester 配置路由消息以及处理数据的序列化/反序列化信息。总结下来，我们需要做的就是提供路由、数据以及消费响应者的消息的方式——作为单个对象（Mono）或作为流（Flux）。</p>
+
+<pre><code>@Slf4j
+@SpringBootApplication
+public class RSocketRequesterApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(RSocketRequesterApplication.class);
+    }
+    @Bean
+    RSocket rSocket() {
+        return RSocketFactory
+                .connect()
+                .frameDecoder(PayloadDecoder.ZERO_COPY)
+                .dataMimeType(MimeTypeUtils.APPLICATION_JSON_VALUE)
+                .transport(TcpClientTransport.create(7000))
+                .start()
+                .block();
+    }
+    @Bean
+    RSocketRequester rSocketRequester(RSocket rSocket, RSocketStrategies rSocketStrategies) {
+        return RSocketRequester.wrap(rSocket, MimeTypeUtils.APPLICATION_JSON,
+                rSocketStrategies);
+    }
+    @Component
+    class CustomerServiceAdapter {
+        private final RSocketRequester rSocketRequester;
+        CustomerServiceAdapter(RSocketRequester rSocketRequester) {
+            this.rSocketRequester = rSocketRequester;
+        }
+        Mono getCustomer(String id) {
+            return rSocketRequester
+                    .route(&quot;customer&quot;)
+                    .data(new CustomerRequest(id))
+                    .retrieveMono(CustomerResponse.class)
+                    .doOnNext(customerResponse -&gt; log.info(&quot;Received customer as mono [{}]&quot;, customerResponse));
+        }
+        Flux getCustomers(List ids) {
+            return rSocketRequester
+                    .route(&quot;customer-stream&quot;)
+                    .data(new MultipleCustomersRequest(ids))
+                    .retrieveFlux(CustomerResponse.class)
+                    .doOnNext(customerResponse -&gt; log.info(&quot;Received customer as flux [{}]&quot;, customerResponse));
+        }
+        Flux getCustomerChannel(Flux customerRequestFlux) {
+            return rSocketRequester
+                    .route(&quot;customer-channel&quot;)
+                    .data(customerRequestFlux, CustomerRequest.class)
+                    .retrieveFlux(CustomerResponse.class)
+                    .doOnNext(customerResponse -&gt; log.info(&quot;Received customer as flux [{}]&quot;, customerResponse));
+        }
+    }
+}
+</code></pre>
+
+<p>除了与响应者进行通信之外，请求者还通过三种路径暴露 RESTful API：<code>/customers/{id}</code>，<code>/customers</code>，<code>/customers-channel</code>。在这里，我们使用 Spring WebFlux，基于 HTTP2 协议。请注意，最后两个映射会生成文本事件流，这意味着数据可用时将被流式传输到 Web 浏览器。</p>
+
+<pre><code>@RestController
+class CustomerController {
+private final CustomerServiceAdapter customerServiceAdapter;
+CustomerController(CustomerServiceAdapter customerServiceAdapter) {
+    this.customerServiceAdapter = customerServiceAdapter;
+}
+@GetMapping(&quot;/customers/{id}&quot;)
+Mono getCustomer(@PathVariable String id) {
+    return customerServiceAdapter.getCustomer(id);
+}
+@GetMapping(value = &quot;/customers&quot;, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+Publisher getCustomers() {
+    return customerServiceAdapter.getCustomers(getRandomIds(10));
+}
+@GetMapping(value = &quot;/customers-channel&quot;, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+Publisher getCustomersChannel() {
+    return customerServiceAdapter.getCustomerChannel(Flux.interval(Duration.ofMillis(1000))
+            .map(id -&gt; new CustomerRequest(UUID.randomUUID().toString())));
+}
+private List getRandomIds(int amount) {
+    return IntStream.range(0, amount)
+            .mapToObj(n -&gt; UUID.randomUUID().toString())
+            .collect(toList());
+}
+}
+</code></pre>
+
+<p>要使用上述 REST 接口，可以使用以下<code>curl</code>命令：</p>
+
+<pre><code>curl http://localhost:8080/customers/1
+curl http://localhost:8080/customers
+curl http://localhost:8080/customers-channel
+</code></pre>
+
+<p>请注意，请求者应用程序有效的代码在<a href="https://github.com/b3rnoulli/rsocket-examples/tree/master/spring-boot-requester">here</a>。</p>
+
+<p>Spring Boot 集成和 RPC 模块的是 RSocket 之上的补充解决方案。第一个是面向消息传递的，并提供了方便的消息路由 API，而 RPC 模块使开发人员可以轻松控制暴露的端口并维护微服务之间的契约。这两种解决方案都有应用场景，可以轻松地与 RSocket 底层 API 结合使用单一协议以一致的方式满足最复杂的要求。</p>
+
+<h2 id="系列总结">系列总结</h2>
+
+<p>本文是与 RSocket 有关的微型系列的最后一部分，RSocket 是一种新的二进制协议，可以彻底改变云中服务之间的通信。其丰富的<a href="https://dzone.com/articles/reactive-service-to-service-communication-with-rso-1">交互模型</a>，性能和其他功能，例如，<a href="https%EF%BC%9A/%20/dzone.com/articles/reactive-service-to-service-communication-with-rso-2">客户端负载平衡和可恢复性</a>使其成为几乎所有可能的业务案例的理想选择。RSocket 的使用还可以通过可用的抽象层进行简化：Spring Boot 集成和 RPC 模块——它们可以解决最典型的日常场景。  请注意，RSocket 处于候选版本（1.0.0-RC2）中，因此不建议在生产环境中使用该协议。尽管如此，还是应当保持关注的，因为不断增长的社区和大型科技公司（例如 Netflix，Facebook，阿里巴巴，Netifi）的支持可能会使 RSocket 成为云中的主要通信协议。</p>
+
+<p>作者：<a href="https://dzone.com/users/3693925/b3rnoulli.html">Rafał Kowalski</a> ，原文：<a href="https://dzone.com/articles/reactive-service-to-service-communication-with-rso-3">Reactive Service to Service Communication With RSocket (Part 3): Abstraction Over RSocket</a></p>
+
+<hr />
+
+<blockquote>
+<p>涤生的博客。</p>
+
+<p>转载请注明原创出处，谢谢！</p>
+
+<p>欢迎关注我的微信公众号：「涤生的博客」，获取更多技术分享。</p>
+</blockquote>
+
+<p><img src="https://andyyin.github.io/img/main/officialAccount.jpg" alt="涤生-微信公共号" /></p>
+
+  </div>
+
+  <footer>
+    <ul class="stats">
+  <li class="categories">
+    <ul>
+        
+            
+            
+                <i class="fa fa-folder"></i>
+                
+                
+                <li><a class="article-category-link" href="https://andyyin.github.io/categories/rsocket">RSocket</a></li>
+                
+            
+        
+    </ul>
+  </li>
+  <li class="tags">
+    <ul>
+        
+            
+            
+                <i class="fa fa-tags"></i>
+                
+                
+                <li><a class="article-category-link" href="https://andyyin.github.io/tags/rsocket">RSocket</a></li>
+                
+            
+        
+    </ul>
+  </li>
+</ul>
+
+  </footer>
+
+</article>
+
+<ul class="actions pagination">
+    
+        <li><a href="https://andyyin.github.io/blog/eclipse-mat-incoming-outgoing-references-%E4%BD%A0%E7%9C%9F%E7%9A%84%E4%BA%86%E8%A7%A3%E5%90%97/"
+                class="button big previous">[译]Eclipse MAT — Incoming, Outgoing References 你真的了解吗？</a></li>
+    
+
+    
+</ul>
+
+
+    </div>
+    
+<section id="sidebar">
+
+  
+  <section id="intro">
+    
+    
+      
+        <a href='https://andyyin.github.io/'><img src="https://andyyin.github.io/img/main/disheng.jpg" class="intro-circle" width="100" alt="涤生的博客" /></a>
+      
+    
+    
+      <header>
+        <h2>涤生的博客</h2>
+        <p>主要分享 Java、JVM、中间件、架构设计、性能优化、Linux 底层技术等，欢迎支持加关注。</p>
+      </header>
+    
+    
+      <ul class="icons">
+        
+          
+    <li><a href="https://andyyin.github.io/index.xml" type="application/rss+xml" target="_blank" title="RSS" class="fa fa-rss"></a></li>
+
+
+        
+        
+  <li><a href="//github.com/andyyin" target="_blank" title="GitHub" class="fa fa-github"></a></li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <li><a href="https://andyyin.github.io/img/main/wechat.jpeg" target="_blank" title="WeChat" class="fa fa-weixin"></a></li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <li><a href="mailto:yyqqyinqi568@126.com" title="Email" class="fa fa-envelope"></a></li>
+
+
+      </ul>
+    
+  </section>
+
+  
+  <section class="recent-posts">
+    <div class="mini-posts">
+      <header>
+        <h3>最新文章</h3>
+      </header>
+      <div class="posts-container">
+        
+
+        
+          
+        
+
+        
+          <article class="mini-post">
+            <header>
+              <h3>
+                <a href="https://andyyin.github.io/blog/%E8%AF%91%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E7%9A%84%E9%80%9A%E8%AE%AF-part-3%E5%9F%BA%E4%BA%8E-rsocket-%E8%BF%9B%E8%A1%8C%E6%8A%BD%E8%B1%A1/">[译]用 RSocket 解决响应式服务之间的的通讯-Part 3：基于 RSocket 进行抽象</a>
+              </h3>
+              
+              <time class="published" datetime='2019-11-18'>
+                2019-11-18
+              </time>
+            </header>
+            
+
+          </article>
+        
+          <article class="mini-post">
+            <header>
+              <h3>
+                <a href="https://andyyin.github.io/blog/eclipse-mat-incoming-outgoing-references-%E4%BD%A0%E7%9C%9F%E7%9A%84%E4%BA%86%E8%A7%A3%E5%90%97/">[译]Eclipse MAT — Incoming, Outgoing References 你真的了解吗？</a>
+              </h3>
+              
+              <time class="published" datetime='2019-10-25'>
+                2019-10-25
+              </time>
+            </header>
+            
+
+          </article>
+        
+          <article class="mini-post">
+            <header>
+              <h3>
+                <a href="https://andyyin.github.io/blog/eclipse-mat-shallow-heap-vs-retained-heap-%E4%BD%A0%E7%90%86%E8%A7%A3%E7%9A%84%E5%AF%B9%E5%90%97/">[译]Eclipse MAT: Shallow Heap Vs Retained Heap 你理解的对吗?</a>
+              </h3>
+              
+              <time class="published" datetime='2019-10-23'>
+                2019-10-23
+              </time>
+            </header>
+            
+
+          </article>
+        
+          <article class="mini-post">
+            <header>
+              <h3>
+                <a href="https://andyyin.github.io/blog/%E8%AF%91%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E9%80%9A%E8%AE%AF-part-2%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1%E5%92%8C%E5%8F%AF%E6%81%A2%E5%A4%8D%E6%80%A7/">[译]用 RSocket 解决响应式服务之间的通讯-Part 2：负载均衡和可恢复性</a>
+              </h3>
+              
+              <time class="published" datetime='2019-10-07'>
+                2019-10-07
+              </time>
+            </header>
+            
+
+          </article>
+        
+          <article class="mini-post">
+            <header>
+              <h3>
+                <a href="https://andyyin.github.io/blog/g1-gc%E4%B8%80%E4%B8%AA%E7%A5%9E%E5%A5%87%E7%9A%84-jvm-%E5%8F%82%E6%95%B0%E5%87%8F%E5%B0%91%E4%BD%A0%E7%9A%84%E5%86%85%E5%AD%98%E6%B6%88%E8%80%97/">[译]G1 GC：一个神奇的 JVM 参数，减少你的内存消耗</a>
+              </h3>
+              
+              <time class="published" datetime='2019-10-06'>
+                2019-10-06
+              </time>
+            </header>
+            
+
+          </article>
+        
+      </div>
+
+      
+        <a href=
+          
+            /blog/
+          
+        class="button">更多</a>
+      
+    </div>
+  </section>
+
+  
+  
+  
+  
+  
+    <section id="categories">
+      <header>
+        <h3>
+          <a href="https://andyyin.github.io/categories/">分类</a>
+        </h3>
+      </header>
+        
+          
+        
+
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/java/">Java</a>
+                <span style="float:right;">15</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/gc/">GC</a>
+                <span style="float:right;">14</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/jvm/">JVM</a>
+                <span style="float:right;">12</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/rsocket/">RSocket</a>
+                <span style="float:right;">3</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/eclipse-mat/">Eclipse MAT</a>
+                <span style="float:right;">2</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/g1/">G1</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/http/">HTTP</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/incoming-references/">Incoming References</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/outgoing-references/">Outgoing References</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/retained-heap/">Retained Heap</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/shallow-heap/">Shallow Heap</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/zookeeper/">Zookeeper</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/%E7%AE%A1%E7%90%86/">管理</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/">系统设计</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+    </section>
+  
+  
+
+  
+  
+    <section id="mini-bio">
+      <h3>关于我</h3>
+      <p>涤生，姓名殷琦，目前就职于某大型互联网公司基础架构部，主要负责微服务框架、服务治理、Serverless 相关工作。 《高可用可伸缩微服务架构：基于Dubbo、Spring Cloud和Service Mesh》的作者之一，《Knative 入门》图书翻译之一。 </p>
+      <a href="https://andyyin.github.io/about/" class="button">了解更多</a>
+    </section>
+  
+
+  
+  <section id="footer">
+    
+      <ul class="icons">
+        
+          
+    <li><a href="https://andyyin.github.io/index.xml" type="application/rss+xml" target="_blank" title="RSS" class="fa fa-rss"></a></li>
+
+
+        
+        
+  <li><a href="//github.com/andyyin" target="_blank" title="GitHub" class="fa fa-github"></a></li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <li><a href="https://andyyin.github.io/img/main/wechat.jpeg" target="_blank" title="WeChat" class="fa fa-weixin"></a></li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <li><a href="mailto:yyqqyinqi568@126.com" title="Email" class="fa fa-envelope"></a></li>
+
+
+      </ul>
+    
+    <p class="copyright">
+      
+        &copy; 2019
+        
+          涤生的博客
+        
+      .
+      Powered by <a href="https://andyyin.github.io/" target="_blank">涤生</a>
+    </p>
+  </section>
+</section>
+
+    </div>
+    <a id="back-to-top" href="#" class="fa fa-arrow-up fa-border fa-2x"></a>
+    
+
+    
+      
+    
+
+    
+      
+      
+      
+        <script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+        
+        
+        
+        <script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+        <script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+        <script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/css.min.js"></script>
+        <script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+      
+    
+    
+    
+      <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/skel/3.0.1/skel.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.1.25/jquery.fancybox.min.js"></script>
+      <script src="https://andyyin.github.io/js/util.js"></script>
+      <script src="https://andyyin.github.io/js/main.js"></script>
+      <script src="https://andyyin.github.io/js/backToTop.js"></script>
+    
+
+    
+      
+        
+      
+    
+
+    
+    <script>hljs.initHighlightingOnLoad();</script>
+      <script src="//yihui.name/js/math-code.js"></script>
+<script async
+src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+  </body>
+</html>
+

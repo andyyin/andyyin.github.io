@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Incoming References on 涤生的博客</title>
+    <link>https://andyyin.github.io/tags/incoming-references/</link>
+    <description>Recent content in Incoming References on 涤生的博客</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh</language>
+    <lastBuildDate>Fri, 25 Oct 2019 00:00:00 +0000</lastBuildDate>
+    
+	<atom:link href="https://andyyin.github.io/tags/incoming-references/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>[译]Eclipse MAT — Incoming, Outgoing References 你真的了解吗？</title>
+      <link>https://andyyin.github.io/blog/eclipse-mat-incoming-outgoing-references-%E4%BD%A0%E7%9C%9F%E7%9A%84%E4%BA%86%E8%A7%A3%E5%90%97/</link>
+      <pubDate>Fri, 25 Oct 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://andyyin.github.io/blog/eclipse-mat-incoming-outgoing-references-%E4%BD%A0%E7%9C%9F%E7%9A%84%E4%BA%86%E8%A7%A3%E5%90%97/</guid>
+      <description>了解 Eclipse MAT 中 incoming and outgoing 引用之间的区别。
+ Eclipse MAT（内存分析器工具）是分析 JVM 堆 Dump 文件的强大工具。它具有几个非常有效分析内存问题的强大功能。 “Incoming references”和“Outgoing references”就是其中一种功能。在本文中，我们来探讨 Incoming references 和 Outgoing references 以及它们之间的区别。 在 Eclipse MAT 中，当右键单击任何对象时，将看到下拉菜单。如果选择“ListObjects”菜单项，则会注意到两个选项：
+ with outgoing references with incoming references  通过示例理解知识会更容易，咱们来看看这样一个例子。让我们通过示例来了解有关 Incoming references 和 Outgoing references 的更多知识。例如，一个应用程序的源代码如下所示：
+public class A { private C c1 = C.getInstance(); } public class B { private C c2 = C.getInstance(); } public class C { private static C myC = new C(); public static C getInstance() { return myC; } private D d1 = new D(); private E e1 = new E(); } public class D { } public class E { } public class SimpleExample { public static void main (String argsp[]) throws Exception { A a = new A(); B b = new B(); } }  现在，如果要为上述示例应用程序以图形方式绘制对象，则其外观将如下所示： 图 1：示例应用程序的对象引用图</description>
+    </item>
+    
+  </channel>
+</rss>

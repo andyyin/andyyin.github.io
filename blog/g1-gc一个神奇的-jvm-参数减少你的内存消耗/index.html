@@ -1,0 +1,1212 @@
+<!DOCTYPE HTML>
+
+<html>
+    <head>
+        <script type="application/ld+json">
+    {
+        "@context" : "http://schema.org",
+        "@type" : "BlogPosting",
+        "mainEntityOfPage": {
+             "@type": "WebPage",
+             "@id": "https://andyyin.github.io"
+        },
+        "articleSection" : "blog",
+        "name" : "[译]G1 GC：一个神奇的 JVM 参数，减少你的内存消耗",
+        "headline" : "[译]G1 GC：一个神奇的 JVM 参数，减少你的内存消耗",
+        "description" : "现代 Java 应用程序有大量的字符串操作，例如，Web 服务 API 调用（即 JSON、REST、SOAP 等）、外部数据源调用（SQL、从 DB 返回的数据等）以及文本解析和文本创建等。因此，字符串对象很容易就占据了约至少 30％ 的内存。然而，这些 String 对象中的大多数都是重复的，这些字符串的重复浪费了大量内存。因此，优化重复字符串对象浪费的内存是 Java 非常受欢迎的功能之一。在 G1 中，Java 就对此功能做了支持。
+G1 做了什么？ G1 GC 算法运行时，它将从内存中删除垃圾对象。它还从内存中删除重复的字符串对象（字符串重复数据删除）。可以通过设置以下 JVM 参数来激活此功能：
+-XX:+UseG1GC -XX:+UseStringDeduplication   注意1：为了使用此功能， 需要在 Java 8 update 20 或更高版本上运行。 注意2：为了使用-XX:+UseStringDeduplication，您需要使用 G1 GC 算法。
+ 让我们看一个例子吧 选择这个简单的示例就是为了研究 JVM 如何处理重复的字符串。让我们通过这个简单的程序来验证 Java 的这个功能。
+ public class StringDeduplicationExample { public static List&lt;String&gt;myStrings = new ArrayList&lt;&gt;(); public static void main(String[] args) throws Exception { for (int counter = 0; counter &lt; 200; ++counter) { for (int secondCounter = 0; secondCounter &lt; 1000; ++secondCounter) { // Add it 1000 times.",
+        "inLanguage" : "zh",
+        "author" : "",
+        "creator" : "",
+        "publisher": "",
+        "accountablePerson" : "",
+        "copyrightHolder" : "",
+        "copyrightYear" : "2019",
+        "datePublished": "2019-10-06 00:00:00 &#43;0000 UTC",
+        "dateModified" : "2019-10-06 00:00:00 &#43;0000 UTC",
+        "url" : "https://andyyin.github.io/blog/g1-gc%E4%B8%80%E4%B8%AA%E7%A5%9E%E5%A5%87%E7%9A%84-jvm-%E5%8F%82%E6%95%B0%E5%87%8F%E5%B0%91%E4%BD%A0%E7%9A%84%E5%86%85%E5%AD%98%E6%B6%88%E8%80%97/",
+        "wordCount" : "192",
+        "keywords" : [ "G1","JVM","GC","Blog" ]
+    }
+    </script>
+        
+            
+                <title>[译]G1 GC：一个神奇的 JVM 参数，减少你的内存消耗</title>
+            
+        
+
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="generator" content="Hugo 0.54.0" />
+        
+
+
+        
+            <meta name="author" content="涤生">
+        
+        
+            
+                <meta name="description" content="涤生的博客，主要分享 Java、JVM、中间件、架构设计、性能优化、Linux 底层技术等，欢迎支持加关注。涤生，姓名殷琦，目前就职于某大型互联网公司基础架构部，主要负责微服务框架、服务治理、Serverless 相关工作。 《高可用可伸缩微服务架构：基于Dubbo、Spring Cloud和Service Mesh》的作者之一，《Knative 入门》图书翻译之一。">
+            
+        
+
+        <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="[译]G1 GC：一个神奇的 JVM 参数，减少你的内存消耗"/>
+<meta name="twitter:description" content="现代 Java 应用程序有大量的字符串操作，例如，Web 服务 API 调用（即 JSON、REST、SOAP 等）、外部数据源调用（SQL、从 DB 返回的数据等）以及文本解析和文本创建等。因此，字符串对象很容易就占据了约至少 30％ 的内存。然而，这些 String 对象中的大多数都是重复的，这些字符串的重复浪费了大量内存。因此，优化重复字符串对象浪费的内存是 Java 非常受欢迎的功能之一。在 G1 中，Java 就对此功能做了支持。
+G1 做了什么？ G1 GC 算法运行时，它将从内存中删除垃圾对象。它还从内存中删除重复的字符串对象（字符串重复数据删除）。可以通过设置以下 JVM 参数来激活此功能：
+-XX:&#43;UseG1GC -XX:&#43;UseStringDeduplication   注意1：为了使用此功能， 需要在 Java 8 update 20 或更高版本上运行。 注意2：为了使用-XX:&#43;UseStringDeduplication，您需要使用 G1 GC 算法。
+ 让我们看一个例子吧 选择这个简单的示例就是为了研究 JVM 如何处理重复的字符串。让我们通过这个简单的程序来验证 Java 的这个功能。
+ public class StringDeduplicationExample { public static List&lt;String&gt;myStrings = new ArrayList&lt;&gt;(); public static void main(String[] args) throws Exception { for (int counter = 0; counter &lt; 200; &#43;&#43;counter) { for (int secondCounter = 0; secondCounter &lt; 1000; &#43;&#43;secondCounter) { // Add it 1000 times."/>
+
+        <meta property="og:title" content="[译]G1 GC：一个神奇的 JVM 参数，减少你的内存消耗" />
+<meta property="og:description" content="现代 Java 应用程序有大量的字符串操作，例如，Web 服务 API 调用（即 JSON、REST、SOAP 等）、外部数据源调用（SQL、从 DB 返回的数据等）以及文本解析和文本创建等。因此，字符串对象很容易就占据了约至少 30％ 的内存。然而，这些 String 对象中的大多数都是重复的，这些字符串的重复浪费了大量内存。因此，优化重复字符串对象浪费的内存是 Java 非常受欢迎的功能之一。在 G1 中，Java 就对此功能做了支持。
+G1 做了什么？ G1 GC 算法运行时，它将从内存中删除垃圾对象。它还从内存中删除重复的字符串对象（字符串重复数据删除）。可以通过设置以下 JVM 参数来激活此功能：
+-XX:&#43;UseG1GC -XX:&#43;UseStringDeduplication   注意1：为了使用此功能， 需要在 Java 8 update 20 或更高版本上运行。 注意2：为了使用-XX:&#43;UseStringDeduplication，您需要使用 G1 GC 算法。
+ 让我们看一个例子吧 选择这个简单的示例就是为了研究 JVM 如何处理重复的字符串。让我们通过这个简单的程序来验证 Java 的这个功能。
+ public class StringDeduplicationExample { public static List&lt;String&gt;myStrings = new ArrayList&lt;&gt;(); public static void main(String[] args) throws Exception { for (int counter = 0; counter &lt; 200; &#43;&#43;counter) { for (int secondCounter = 0; secondCounter &lt; 1000; &#43;&#43;secondCounter) { // Add it 1000 times." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://andyyin.github.io/blog/g1-gc%E4%B8%80%E4%B8%AA%E7%A5%9E%E5%A5%87%E7%9A%84-jvm-%E5%8F%82%E6%95%B0%E5%87%8F%E5%B0%91%E4%BD%A0%E7%9A%84%E5%86%85%E5%AD%98%E6%B6%88%E8%80%97/" />
+<meta property="article:published_time" content="2019-10-06T00:00:00&#43;00:00"/>
+<meta property="article:modified_time" content="2019-10-06T00:00:00&#43;00:00"/>
+
+        <meta property="og:image" content="https://andyyin.github.io/images/logo.png">
+        <meta property="og:image:type" content="image/png">
+        <meta property="og:image:width" content="512">
+        <meta property="og:image:height" content="512">
+        
+<meta itemprop="name" content="[译]G1 GC：一个神奇的 JVM 参数，减少你的内存消耗">
+<meta itemprop="description" content="现代 Java 应用程序有大量的字符串操作，例如，Web 服务 API 调用（即 JSON、REST、SOAP 等）、外部数据源调用（SQL、从 DB 返回的数据等）以及文本解析和文本创建等。因此，字符串对象很容易就占据了约至少 30％ 的内存。然而，这些 String 对象中的大多数都是重复的，这些字符串的重复浪费了大量内存。因此，优化重复字符串对象浪费的内存是 Java 非常受欢迎的功能之一。在 G1 中，Java 就对此功能做了支持。
+G1 做了什么？ G1 GC 算法运行时，它将从内存中删除垃圾对象。它还从内存中删除重复的字符串对象（字符串重复数据删除）。可以通过设置以下 JVM 参数来激活此功能：
+-XX:&#43;UseG1GC -XX:&#43;UseStringDeduplication   注意1：为了使用此功能， 需要在 Java 8 update 20 或更高版本上运行。 注意2：为了使用-XX:&#43;UseStringDeduplication，您需要使用 G1 GC 算法。
+ 让我们看一个例子吧 选择这个简单的示例就是为了研究 JVM 如何处理重复的字符串。让我们通过这个简单的程序来验证 Java 的这个功能。
+ public class StringDeduplicationExample { public static List&lt;String&gt;myStrings = new ArrayList&lt;&gt;(); public static void main(String[] args) throws Exception { for (int counter = 0; counter &lt; 200; &#43;&#43;counter) { for (int secondCounter = 0; secondCounter &lt; 1000; &#43;&#43;secondCounter) { // Add it 1000 times.">
+
+
+<meta itemprop="datePublished" content="2019-10-06T00:00:00&#43;00:00" />
+<meta itemprop="dateModified" content="2019-10-06T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="192">
+
+
+
+<meta itemprop="keywords" content="G1,JVM,GC," />
+
+        
+
+        
+            
+        
+
+        
+        
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/atom-one-light.min.css">
+            <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway:400,800,900|Source+Sans+Pro:400,700">
+            <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.1.25/jquery.fancybox.min.css">
+            <link rel="stylesheet" href="https://andyyin.github.io/css/main.css">
+            <link rel="stylesheet" href="https://andyyin.github.io/css/add-on.css">
+            <link rel="stylesheet" href="https://andyyin.github.io/css/academicons.min.css">
+        
+
+        
+            
+                
+            
+        
+
+
+  
+    
+    <link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+  
+
+
+      
+    </head>
+    <body>
+
+      
+      <div id="wrapper">
+
+    
+    
+<header id="header">
+    
+      <h1><a href="https://andyyin.github.io/">涤生|个人博客</a></h1>
+    
+
+    <nav class="links">
+        <ul>
+            
+                <li>
+                    <a href="https://andyyin.github.io/">
+                            <i class="fa fa-home">&nbsp;</i>主页
+                    </a>
+                </li>
+            
+                <li>
+                    <a href="https://andyyin.github.io/blog/">
+                            <i class="fa fa-newspaper-o">&nbsp;</i>博客
+                    </a>
+                </li>
+            
+                <li>
+                    <a href="https://andyyin.github.io/categories/">
+                            <i class="fa fa-sitemap">&nbsp;</i>分类
+                    </a>
+                </li>
+            
+                <li>
+                    <a href="https://andyyin.github.io/about/">
+                            <i class="fa fa-id-card-o">&nbsp;</i>关于
+                    </a>
+                </li>
+            
+                <li>
+                    <a href="https://andyyin.github.io/links/">
+                            <i class="fa fa-link">&nbsp;</i>友链
+                    </a>
+                </li>
+            
+        </ul>
+    </nav>
+    <nav class="main">
+        <ul>
+            
+            <li id="share-nav" class="share-menu" style="display:none;">
+                <a class="fa-share-alt" href="#share-menu">Share</a>
+            </li>
+            
+            <li class="search">
+                <a class="fa-search" href="#search">Search</a>
+                <form id="search" method="get" action="//google.com/search">
+                    <input type="text" name="q" placeholder="Search" />
+                    <input type="hidden" name="as_sitesearch" value="https://andyyin.github.io">
+                </form>
+            </li>
+            <li class="menu">
+                <a class="fa-bars" href="#menu">Menu</a>
+            </li>
+        </ul>
+    </nav>
+</header>
+
+
+<section id="menu">
+
+    
+        <section>
+            <form class="search" method="get" action="//google.com/search">
+                <input type="text" name="q" placeholder="Search" />
+                <input type="hidden" name="as_sitesearch" value="https://andyyin.github.io">
+            </form>
+        </section>
+
+    
+        <section>
+            <ul class="links">
+                
+                    <li>
+                        <a href="https://andyyin.github.io/">
+                            <h3>
+                                <i class="fa fa-home">&nbsp;</i>主页
+                            </h3>
+                        </a>
+                    </li>
+                
+                    <li>
+                        <a href="https://andyyin.github.io/blog/">
+                            <h3>
+                                <i class="fa fa-newspaper-o">&nbsp;</i>博客
+                            </h3>
+                        </a>
+                    </li>
+                
+                    <li>
+                        <a href="https://andyyin.github.io/categories/">
+                            <h3>
+                                <i class="fa fa-sitemap">&nbsp;</i>分类
+                            </h3>
+                        </a>
+                    </li>
+                
+                    <li>
+                        <a href="https://andyyin.github.io/about/">
+                            <h3>
+                                <i class="fa fa-id-card-o">&nbsp;</i>关于
+                            </h3>
+                        </a>
+                    </li>
+                
+                    <li>
+                        <a href="https://andyyin.github.io/links/">
+                            <h3>
+                                <i class="fa fa-link">&nbsp;</i>友链
+                            </h3>
+                        </a>
+                    </li>
+                
+            </ul>
+        </section>
+
+    
+        <section class="recent-posts">
+            <div class="mini-posts">
+                <header>
+                    <h3>Recent Posts</h3>
+                </header>
+                
+
+                
+                    
+                
+
+                
+                        <article class="mini-post">
+                            <header>
+                                <h3><a href="https://andyyin.github.io/blog/%E8%AF%91%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E7%9A%84%E9%80%9A%E8%AE%AF-part-3%E5%9F%BA%E4%BA%8E-rsocket-%E8%BF%9B%E8%A1%8C%E6%8A%BD%E8%B1%A1/">[译]用 RSocket 解决响应式服务之间的的通讯-Part 3：基于 RSocket 进行抽象</a></h3>
+                                
+                                <time class="published" datetime=
+                                    '2019-11-18'>
+                                    November 18, 2019</time>
+                            </header>
+                            
+
+                        </article>
+                
+                        <article class="mini-post">
+                            <header>
+                                <h3><a href="https://andyyin.github.io/blog/eclipse-mat-incoming-outgoing-references-%E4%BD%A0%E7%9C%9F%E7%9A%84%E4%BA%86%E8%A7%A3%E5%90%97/">[译]Eclipse MAT — Incoming, Outgoing References 你真的了解吗？</a></h3>
+                                
+                                <time class="published" datetime=
+                                    '2019-10-25'>
+                                    October 25, 2019</time>
+                            </header>
+                            
+
+                        </article>
+                
+                        <article class="mini-post">
+                            <header>
+                                <h3><a href="https://andyyin.github.io/blog/eclipse-mat-shallow-heap-vs-retained-heap-%E4%BD%A0%E7%90%86%E8%A7%A3%E7%9A%84%E5%AF%B9%E5%90%97/">[译]Eclipse MAT: Shallow Heap Vs Retained Heap 你理解的对吗?</a></h3>
+                                
+                                <time class="published" datetime=
+                                    '2019-10-23'>
+                                    October 23, 2019</time>
+                            </header>
+                            
+
+                        </article>
+                
+                        <article class="mini-post">
+                            <header>
+                                <h3><a href="https://andyyin.github.io/blog/%E8%AF%91%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E9%80%9A%E8%AE%AF-part-2%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1%E5%92%8C%E5%8F%AF%E6%81%A2%E5%A4%8D%E6%80%A7/">[译]用 RSocket 解决响应式服务之间的通讯-Part 2：负载均衡和可恢复性</a></h3>
+                                
+                                <time class="published" datetime=
+                                    '2019-10-07'>
+                                    October 7, 2019</time>
+                            </header>
+                            
+
+                        </article>
+                
+                        <article class="mini-post">
+                            <header>
+                                <h3><a href="https://andyyin.github.io/blog/g1-gc%E4%B8%80%E4%B8%AA%E7%A5%9E%E5%A5%87%E7%9A%84-jvm-%E5%8F%82%E6%95%B0%E5%87%8F%E5%B0%91%E4%BD%A0%E7%9A%84%E5%86%85%E5%AD%98%E6%B6%88%E8%80%97/">[译]G1 GC：一个神奇的 JVM 参数，减少你的内存消耗</a></h3>
+                                
+                                <time class="published" datetime=
+                                    '2019-10-06'>
+                                    October 6, 2019</time>
+                            </header>
+                            
+
+                        </article>
+                
+
+                
+                    <a href=
+                        
+                            /blog/
+                        
+                        class="button">更多</a>
+                
+            </div>
+        </section>
+
+    
+        
+</section>
+
+    <section id="share-menu">
+    <section id="social-share-nav">
+        <ul class="links">
+            <header>
+                <h3>Share this post <i class="fa fa-smile-o"></i></h3>
+            </header>
+            
+
+
+
+<li>
+  <a href="//twitter.com/share?url=https%3a%2f%2fandyyin.github.io%2fblog%2fg1-gc%25E4%25B8%2580%25E4%25B8%25AA%25E7%25A5%259E%25E5%25A5%2587%25E7%259A%2584-jvm-%25E5%258F%2582%25E6%2595%25B0%25E5%2587%258F%25E5%25B0%2591%25E4%25BD%25A0%25E7%259A%2584%25E5%2586%2585%25E5%25AD%2598%25E6%25B6%2588%25E8%2580%2597%2f&amp;text=%5b%e8%af%91%5dG1%20GC%ef%bc%9a%e4%b8%80%e4%b8%aa%e7%a5%9e%e5%a5%87%e7%9a%84%20JVM%20%e5%8f%82%e6%95%b0%ef%bc%8c%e5%87%8f%e5%b0%91%e4%bd%a0%e7%9a%84%e5%86%85%e5%ad%98%e6%b6%88%e8%80%97&amp;via=" target="_blank" class="share-btn twitter">
+    <i class="fa fa-twitter"></i>
+    <p>Twitter</p>
+    </a>
+</li>
+
+
+
+
+<li>
+  <a href="//plus.google.com/share?url=https%3a%2f%2fandyyin.github.io%2fblog%2fg1-gc%25E4%25B8%2580%25E4%25B8%25AA%25E7%25A5%259E%25E5%25A5%2587%25E7%259A%2584-jvm-%25E5%258F%2582%25E6%2595%25B0%25E5%2587%258F%25E5%25B0%2591%25E4%25BD%25A0%25E7%259A%2584%25E5%2586%2585%25E5%25AD%2598%25E6%25B6%2588%25E8%2580%2597%2f" target="_blank" class="share-btn google-plus">
+    <i class="fa fa-google-plus"></i>
+    <p>Google+</p>
+  </a>
+</li>
+
+
+
+
+
+<li>
+  <a href="//www.facebook.com/sharer/sharer.php?u=https%3a%2f%2fandyyin.github.io%2fblog%2fg1-gc%25E4%25B8%2580%25E4%25B8%25AA%25E7%25A5%259E%25E5%25A5%2587%25E7%259A%2584-jvm-%25E5%258F%2582%25E6%2595%25B0%25E5%2587%258F%25E5%25B0%2591%25E4%25BD%25A0%25E7%259A%2584%25E5%2586%2585%25E5%25AD%2598%25E6%25B6%2588%25E8%2580%2597%2f" target="_blank" class="share-btn facebook">
+    <i class="fa fa-facebook"></i>
+    <p>Facebook</p>
+    </a>
+</li>
+
+
+
+
+<li>
+  <a href="//reddit.com/submit?url=https%3a%2f%2fandyyin.github.io%2fblog%2fg1-gc%25E4%25B8%2580%25E4%25B8%25AA%25E7%25A5%259E%25E5%25A5%2587%25E7%259A%2584-jvm-%25E5%258F%2582%25E6%2595%25B0%25E5%2587%258F%25E5%25B0%2591%25E4%25BD%25A0%25E7%259A%2584%25E5%2586%2585%25E5%25AD%2598%25E6%25B6%2588%25E8%2580%2597%2f&amp;title=%5b%e8%af%91%5dG1%20GC%ef%bc%9a%e4%b8%80%e4%b8%aa%e7%a5%9e%e5%a5%87%e7%9a%84%20JVM%20%e5%8f%82%e6%95%b0%ef%bc%8c%e5%87%8f%e5%b0%91%e4%bd%a0%e7%9a%84%e5%86%85%e5%ad%98%e6%b6%88%e8%80%97" target="_blank" class="share-btn reddit">
+    <i class="fa fa-reddit-alien"></i>
+    <p>Reddit</p>
+  </a>
+</li>
+
+
+
+
+<li>
+  <a href="//www.linkedin.com/shareArticle?url=https%3a%2f%2fandyyin.github.io%2fblog%2fg1-gc%25E4%25B8%2580%25E4%25B8%25AA%25E7%25A5%259E%25E5%25A5%2587%25E7%259A%2584-jvm-%25E5%258F%2582%25E6%2595%25B0%25E5%2587%258F%25E5%25B0%2591%25E4%25BD%25A0%25E7%259A%2584%25E5%2586%2585%25E5%25AD%2598%25E6%25B6%2588%25E8%2580%2597%2f&amp;title=%5b%e8%af%91%5dG1%20GC%ef%bc%9a%e4%b8%80%e4%b8%aa%e7%a5%9e%e5%a5%87%e7%9a%84%20JVM%20%e5%8f%82%e6%95%b0%ef%bc%8c%e5%87%8f%e5%b0%91%e4%bd%a0%e7%9a%84%e5%86%85%e5%ad%98%e6%b6%88%e8%80%97" target="_blank" class="share-btn linkedin">
+      <i class="fa fa-linkedin"></i>
+      <p>LinkedIn</p>
+    </a>
+</li>
+
+
+
+
+<li>
+  <a href="//www.stumbleupon.com/submit?url=https%3a%2f%2fandyyin.github.io%2fblog%2fg1-gc%25E4%25B8%2580%25E4%25B8%25AA%25E7%25A5%259E%25E5%25A5%2587%25E7%259A%2584-jvm-%25E5%258F%2582%25E6%2595%25B0%25E5%2587%258F%25E5%25B0%2591%25E4%25BD%25A0%25E7%259A%2584%25E5%2586%2585%25E5%25AD%2598%25E6%25B6%2588%25E8%2580%2597%2f&amp;title=%5b%e8%af%91%5dG1%20GC%ef%bc%9a%e4%b8%80%e4%b8%aa%e7%a5%9e%e5%a5%87%e7%9a%84%20JVM%20%e5%8f%82%e6%95%b0%ef%bc%8c%e5%87%8f%e5%b0%91%e4%bd%a0%e7%9a%84%e5%86%85%e5%ad%98%e6%b6%88%e8%80%97" target="_blank" class="share-btn stumbleupon">
+    <i class="fa fa-stumbleupon"></i>
+    <p>StumbleUpon</p>
+  </a>
+</li>
+
+
+
+
+<li>
+  <a href="//www.pinterest.com/pin/create/button/?url=https%3a%2f%2fandyyin.github.io%2fblog%2fg1-gc%25E4%25B8%2580%25E4%25B8%25AA%25E7%25A5%259E%25E5%25A5%2587%25E7%259A%2584-jvm-%25E5%258F%2582%25E6%2595%25B0%25E5%2587%258F%25E5%25B0%2591%25E4%25BD%25A0%25E7%259A%2584%25E5%2586%2585%25E5%25AD%2598%25E6%25B6%2588%25E8%2580%2597%2f&amp;description=%5b%e8%af%91%5dG1%20GC%ef%bc%9a%e4%b8%80%e4%b8%aa%e7%a5%9e%e5%a5%87%e7%9a%84%20JVM%20%e5%8f%82%e6%95%b0%ef%bc%8c%e5%87%8f%e5%b0%91%e4%bd%a0%e7%9a%84%e5%86%85%e5%ad%98%e6%b6%88%e8%80%97" target="_blank" class="share-btn pinterest">
+    <i class="fa fa-pinterest-p"></i>
+    <p>Pinterest</p>
+  </a>
+</li>
+
+
+
+
+<li>
+  <a href="mailto:?subject=Check out this post by %e6%b6%a4%e7%94%9f&amp;body=https%3a%2f%2fandyyin.github.io%2fblog%2fg1-gc%25E4%25B8%2580%25E4%25B8%25AA%25E7%25A5%259E%25E5%25A5%2587%25E7%259A%2584-jvm-%25E5%258F%2582%25E6%2595%25B0%25E5%2587%258F%25E5%25B0%2591%25E4%25BD%25A0%25E7%259A%2584%25E5%2586%2585%25E5%25AD%2598%25E6%25B6%2588%25E8%2580%2597%2f" target="_blank" class="share-btn email">
+    <i class="fa fa-envelope"></i>
+    <p>Email</p>
+  </a>
+</li>
+
+
+        </ul>
+    </section>
+</section>
+
+    
+    <div id="main">
+        
+        
+        <article class="post">
+  <header>
+    <div class="title">
+        
+            <h1><a href="https://andyyin.github.io/blog/g1-gc%E4%B8%80%E4%B8%AA%E7%A5%9E%E5%A5%87%E7%9A%84-jvm-%E5%8F%82%E6%95%B0%E5%87%8F%E5%B0%91%E4%BD%A0%E7%9A%84%E5%86%85%E5%AD%98%E6%B6%88%E8%80%97/">[译]G1 GC：一个神奇的 JVM 参数，减少你的内存消耗</a></h1>
+            
+        
+        
+    </div>
+    <div class="meta">
+        
+
+        <time class="published"
+            datetime='2019-10-06'>
+            2019-10-06</time>
+        <span class="author">涤生</span>
+        
+            <p>1 分钟阅读</p>
+        
+        
+    </div>
+</header>
+
+
+  
+
+  
+
+  <div id="content">
+    
+
+<p>现代 Java 应用程序有大量的字符串操作，例如，Web 服务 API 调用（即 JSON、REST、SOAP 等）、外部数据源调用（SQL、从 DB 返回的数据等）以及文本解析和文本创建等。因此，字符串对象很容易就占据了约至少 30％ 的内存。然而，这些 String 对象中的大多数都是重复的，这些字符串的重复浪费了大量内存。因此，优化重复字符串对象浪费的内存是 Java 非常受欢迎的功能之一。在 G1 中，Java 就对此功能做了支持。</p>
+
+<h2 id="g1-做了什么">G1 做了什么？</h2>
+
+<p>G1 GC 算法运行时，它将从内存中删除垃圾对象。它还从内存中删除重复的字符串对象（字符串重复数据删除）。可以通过设置以下 JVM 参数来激活此功能：</p>
+
+<pre><code>-XX:+UseG1GC -XX:+UseStringDeduplication
+</code></pre>
+
+<blockquote>
+<p><strong>注意1：</strong>为了使用此功能， 需要在 Java 8 update 20 或更高版本上运行。
+<strong>注意2：</strong>为了使用<code>-XX:+UseStringDeduplication</code>，您需要使用 G1 GC 算法。</p>
+</blockquote>
+
+<h2 id="让我们看一个例子吧">让我们看一个例子吧</h2>
+
+<p>选择这个简单的示例就是为了研究 JVM 如何处理重复的字符串。让我们通过这个简单的程序来验证 Java 的这个功能。</p>
+
+<pre><code> public class StringDeduplicationExample {
+
+ public static List&lt;String&gt;myStrings = new ArrayList&lt;&gt;();
+
+ public static void main(String[] args) throws Exception {
+
+   for (int counter = 0; counter &lt; 200; ++counter) {
+
+     for (int secondCounter = 0; secondCounter &lt; 1000; ++secondCounter) {
+       // Add it 1000 times.
+       myStrings.add((&quot;Hello World-&quot; + counter));
+     }
+
+     System.out.println(&quot;Hello World-&quot; + counter + &quot; has been added 1000 times&quot;);
+   }
+ }
+}
+</code></pre>
+
+<p>这个程序非常简单，主要就是创建字符串对象：</p>
+
+<ul>
+<li>1000 个“ Hello World-0”字符串实例</li>
+<li>1000 个“ Hello World-1”字符串实例</li>
+<li>1000 个“ Hello World-2”字符串实例</li>
+<li>&hellip;</li>
+<li>&hellip;</li>
+<li>&hellip;</li>
+<li>1000 个“ Hello World-199”字符串实例</li>
+</ul>
+
+<p>我们使用两组不同的 JVM 参数来运行这个程序。</p>
+
+<h2 id="第一组">第一组</h2>
+
+<p>第一次通过设置<code>-XX:+UseStringDeduplication</code>JVM 参数来运行程序。即：</p>
+
+<pre><code>-Xmx20M -XX:+UseG1GC -XX:+UseStringDeduplication
+</code></pre>
+
+<h2 id="第二组">第二组</h2>
+
+<p>第二次，不设置<code>-XX:+UseStringDeduplication</code>参数的情况下运行同一程序：</p>
+
+<pre><code>-Xmx20M -XX:+UseG1GC
+</code></pre>
+
+<p>在这两次运行中，我们都捕获了堆的 Dump 信息，并通过堆的 Dump 分析工具<a href="http://heaphero.io/">HeapHero.io</a>对其进行了分析。 HeapHero.io 会检测由于各种无效的编程习惯而浪费的内存量，当然也包括由于重复的字符串而浪费的内存量。</p>
+
+<p>以下是 HeapHero.io 生成的报告：
+1.  <a href="http://heaphero.io/my-heap-report.jsp?p=YXJjaGl2ZWQvMjAxOC8wNS8yNi8tLS0tc3lzcHJvcGVydHktMjBtYi5ocHJvZi0yMC0xNy00MS5qc29uLS0=">第一组 Heap Dump 分析报告</a>
+2.  <a href="http://heaphero.io/my-heap-report.jsp?p=YXJjaGl2ZWQvMjAxOC8wNS8yNi8tLS0tbm9zeXNwcm9wZXJ0eS0yMG1iLmhwcm9mLTIwLTE4LTMzLmpzb24tLQ==">第二组 Heap Dump 分析报告</a></p>
+
+<p>这是该报告中一些有趣的发现：</p>
+
+<table>
+<thead>
+<tr>
+<th></th>
+<th><strong>第一组</strong>（配置相关参数）</th>
+<th><strong>第二组</strong>（未配置相关参数）</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td><strong>总体堆使用量</strong></td>
+<td>7.94MB</td>
+<td>15.89MB</td>
+</tr>
+
+<tr>
+<td><strong>字符串对象的总数</strong></td>
+<td>206K</td>
+<td>206K</td>
+</tr>
+
+<tr>
+<td><strong>字符串重复而浪费的内存</strong></td>
+<td>5.6MB</td>
+<td>13.81MB</td>
+</tr>
+</tbody>
+</table>
+
+<p>即使运行的是相同的代码，在运行第一组（配置了<code>-XX:+UseStringDeduplication</code>）中，你可以看到总体堆使用量为 7.94MB，而在运行第二组（未配置了<code>-XX:+UseStringDeduplication</code>）中，则总体堆使用量为 15.89MB。
+即使在两次运行中都有相等数量的字符串对象（206K），由于运行第一组中重复的字符串而浪费的内存量为 5.6MB，而在运行第二组中重复的字符串而浪费的内存量为 13.81MB。
+由于使用了<code>-XX:+UseStringDeduplication</code>参数，从应用程序中删除了大量重复字符串，从而大幅度减少内存消耗。
+因此，你可以利用<code>-XX:+UseG1GC -XX:+UseStringDeduplication</code>来减少重复字符串导致的内存浪费，它会减少应用程序的整体内存占用。</p>
+
+<p>作者：<a href="https://dzone.com/users/2756952/vmoksha.html">Ram Lakshmanan</a>，原文：<a href="https://dzone.com/articles/easy-change-to-reduce-memory-by-20">G1 GC: Reducing Memory Consumption by 20%</a></p>
+
+<hr />
+
+<blockquote>
+<p>涤生的博客。</p>
+
+<p>转载请注明原创出处，谢谢！</p>
+
+<p>欢迎关注我的微信公众号：「涤生的博客」，获取更多技术分享。</p>
+</blockquote>
+
+<p><img src="https://andyyin.github.io/img/main/officialAccount.jpg" alt="涤生-微信公共号" /></p>
+
+  </div>
+
+  <footer>
+    <ul class="stats">
+  <li class="categories">
+    <ul>
+        
+            
+            
+                <i class="fa fa-folder"></i>
+                
+                
+                <li><a class="article-category-link" href="https://andyyin.github.io/categories/g1">G1</a></li>
+                
+                
+                <li><a class="article-category-link" href="https://andyyin.github.io/categories/jvm">JVM</a></li>
+                
+                
+                <li><a class="article-category-link" href="https://andyyin.github.io/categories/gc">GC</a></li>
+                
+            
+        
+    </ul>
+  </li>
+  <li class="tags">
+    <ul>
+        
+            
+            
+                <i class="fa fa-tags"></i>
+                
+                
+                <li><a class="article-category-link" href="https://andyyin.github.io/tags/g1">G1</a></li>
+                
+                
+                <li><a class="article-category-link" href="https://andyyin.github.io/tags/jvm">JVM</a></li>
+                
+                
+                <li><a class="article-category-link" href="https://andyyin.github.io/tags/gc">GC</a></li>
+                
+            
+        
+    </ul>
+  </li>
+</ul>
+
+  </footer>
+
+</article>
+
+<ul class="actions pagination">
+    
+        <li><a href="https://andyyin.github.io/blog/%E8%AF%91%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E9%80%9A%E8%AE%AF-part-1/"
+                class="button big previous">[译]用 RSocket 解决响应式服务之间的通讯-Part 1</a></li>
+    
+
+    
+        <li><a href="https://andyyin.github.io/blog/%E8%AF%91%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E9%80%9A%E8%AE%AF-part-2%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1%E5%92%8C%E5%8F%AF%E6%81%A2%E5%A4%8D%E6%80%A7/"
+                class="button big next">[译]用 RSocket 解决响应式服务之间的通讯-Part 2：负载均衡和可恢复性</a></li>
+    
+</ul>
+
+
+    </div>
+    
+<section id="sidebar">
+
+  
+  <section id="intro">
+    
+    
+      
+        <a href='https://andyyin.github.io/'><img src="https://andyyin.github.io/img/main/disheng.jpg" class="intro-circle" width="100" alt="涤生的博客" /></a>
+      
+    
+    
+      <header>
+        <h2>涤生的博客</h2>
+        <p>主要分享 Java、JVM、中间件、架构设计、性能优化、Linux 底层技术等，欢迎支持加关注。</p>
+      </header>
+    
+    
+      <ul class="icons">
+        
+          
+    <li><a href="https://andyyin.github.io/index.xml" type="application/rss+xml" target="_blank" title="RSS" class="fa fa-rss"></a></li>
+
+
+        
+        
+  <li><a href="//github.com/andyyin" target="_blank" title="GitHub" class="fa fa-github"></a></li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <li><a href="https://andyyin.github.io/img/main/wechat.jpeg" target="_blank" title="WeChat" class="fa fa-weixin"></a></li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <li><a href="mailto:yyqqyinqi568@126.com" title="Email" class="fa fa-envelope"></a></li>
+
+
+      </ul>
+    
+  </section>
+
+  
+  <section class="recent-posts">
+    <div class="mini-posts">
+      <header>
+        <h3>最新文章</h3>
+      </header>
+      <div class="posts-container">
+        
+
+        
+          
+        
+
+        
+          <article class="mini-post">
+            <header>
+              <h3>
+                <a href="https://andyyin.github.io/blog/%E8%AF%91%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E7%9A%84%E9%80%9A%E8%AE%AF-part-3%E5%9F%BA%E4%BA%8E-rsocket-%E8%BF%9B%E8%A1%8C%E6%8A%BD%E8%B1%A1/">[译]用 RSocket 解决响应式服务之间的的通讯-Part 3：基于 RSocket 进行抽象</a>
+              </h3>
+              
+              <time class="published" datetime='2019-11-18'>
+                2019-11-18
+              </time>
+            </header>
+            
+
+          </article>
+        
+          <article class="mini-post">
+            <header>
+              <h3>
+                <a href="https://andyyin.github.io/blog/eclipse-mat-incoming-outgoing-references-%E4%BD%A0%E7%9C%9F%E7%9A%84%E4%BA%86%E8%A7%A3%E5%90%97/">[译]Eclipse MAT — Incoming, Outgoing References 你真的了解吗？</a>
+              </h3>
+              
+              <time class="published" datetime='2019-10-25'>
+                2019-10-25
+              </time>
+            </header>
+            
+
+          </article>
+        
+          <article class="mini-post">
+            <header>
+              <h3>
+                <a href="https://andyyin.github.io/blog/eclipse-mat-shallow-heap-vs-retained-heap-%E4%BD%A0%E7%90%86%E8%A7%A3%E7%9A%84%E5%AF%B9%E5%90%97/">[译]Eclipse MAT: Shallow Heap Vs Retained Heap 你理解的对吗?</a>
+              </h3>
+              
+              <time class="published" datetime='2019-10-23'>
+                2019-10-23
+              </time>
+            </header>
+            
+
+          </article>
+        
+          <article class="mini-post">
+            <header>
+              <h3>
+                <a href="https://andyyin.github.io/blog/%E8%AF%91%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E9%80%9A%E8%AE%AF-part-2%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1%E5%92%8C%E5%8F%AF%E6%81%A2%E5%A4%8D%E6%80%A7/">[译]用 RSocket 解决响应式服务之间的通讯-Part 2：负载均衡和可恢复性</a>
+              </h3>
+              
+              <time class="published" datetime='2019-10-07'>
+                2019-10-07
+              </time>
+            </header>
+            
+
+          </article>
+        
+          <article class="mini-post">
+            <header>
+              <h3>
+                <a href="https://andyyin.github.io/blog/g1-gc%E4%B8%80%E4%B8%AA%E7%A5%9E%E5%A5%87%E7%9A%84-jvm-%E5%8F%82%E6%95%B0%E5%87%8F%E5%B0%91%E4%BD%A0%E7%9A%84%E5%86%85%E5%AD%98%E6%B6%88%E8%80%97/">[译]G1 GC：一个神奇的 JVM 参数，减少你的内存消耗</a>
+              </h3>
+              
+              <time class="published" datetime='2019-10-06'>
+                2019-10-06
+              </time>
+            </header>
+            
+
+          </article>
+        
+      </div>
+
+      
+        <a href=
+          
+            /blog/
+          
+        class="button">更多</a>
+      
+    </div>
+  </section>
+
+  
+  
+  
+  
+  
+    <section id="categories">
+      <header>
+        <h3>
+          <a href="https://andyyin.github.io/categories/">分类</a>
+        </h3>
+      </header>
+        
+          
+        
+
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/java/">Java</a>
+                <span style="float:right;">15</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/gc/">GC</a>
+                <span style="float:right;">14</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/jvm/">JVM</a>
+                <span style="float:right;">12</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/rsocket/">RSocket</a>
+                <span style="float:right;">3</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/eclipse-mat/">Eclipse MAT</a>
+                <span style="float:right;">2</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/g1/">G1</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/http/">HTTP</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/incoming-references/">Incoming References</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/outgoing-references/">Outgoing References</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/retained-heap/">Retained Heap</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/shallow-heap/">Shallow Heap</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/zookeeper/">Zookeeper</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/%E7%AE%A1%E7%90%86/">管理</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/">系统设计</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+    </section>
+  
+  
+
+  
+  
+    <section id="mini-bio">
+      <h3>关于我</h3>
+      <p>涤生，姓名殷琦，目前就职于某大型互联网公司基础架构部，主要负责微服务框架、服务治理、Serverless 相关工作。 《高可用可伸缩微服务架构：基于Dubbo、Spring Cloud和Service Mesh》的作者之一，《Knative 入门》图书翻译之一。 </p>
+      <a href="https://andyyin.github.io/about/" class="button">了解更多</a>
+    </section>
+  
+
+  
+  <section id="footer">
+    
+      <ul class="icons">
+        
+          
+    <li><a href="https://andyyin.github.io/index.xml" type="application/rss+xml" target="_blank" title="RSS" class="fa fa-rss"></a></li>
+
+
+        
+        
+  <li><a href="//github.com/andyyin" target="_blank" title="GitHub" class="fa fa-github"></a></li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <li><a href="https://andyyin.github.io/img/main/wechat.jpeg" target="_blank" title="WeChat" class="fa fa-weixin"></a></li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <li><a href="mailto:yyqqyinqi568@126.com" title="Email" class="fa fa-envelope"></a></li>
+
+
+      </ul>
+    
+    <p class="copyright">
+      
+        &copy; 2019
+        
+          涤生的博客
+        
+      .
+      Powered by <a href="https://andyyin.github.io/" target="_blank">涤生</a>
+    </p>
+  </section>
+</section>
+
+    </div>
+    <a id="back-to-top" href="#" class="fa fa-arrow-up fa-border fa-2x"></a>
+    
+
+    
+      
+    
+
+    
+      
+      
+      
+        <script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+        
+        
+        
+        <script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+        <script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+        <script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/css.min.js"></script>
+        <script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+      
+    
+    
+    
+      <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/skel/3.0.1/skel.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.1.25/jquery.fancybox.min.js"></script>
+      <script src="https://andyyin.github.io/js/util.js"></script>
+      <script src="https://andyyin.github.io/js/main.js"></script>
+      <script src="https://andyyin.github.io/js/backToTop.js"></script>
+    
+
+    
+      
+        
+      
+    
+
+    
+    <script>hljs.initHighlightingOnLoad();</script>
+      <script src="//yihui.name/js/math-code.js"></script>
+<script async
+src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+  </body>
+</html>
+

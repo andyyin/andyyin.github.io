@@ -1,0 +1,1222 @@
+<!DOCTYPE HTML>
+
+<html>
+    <head>
+        <script type="application/ld+json">
+    {
+        "@context" : "http://schema.org",
+        "@type" : "BlogPosting",
+        "mainEntityOfPage": {
+             "@type": "WebPage",
+             "@id": "https://andyyin.github.io"
+        },
+        "articleSection" : "blog",
+        "name" : "[译]用 RSocket 解决响应式服务之间的通讯-Part 2：负载均衡和可恢复性",
+        "headline" : "[译]用 RSocket 解决响应式服务之间的通讯-Part 2：负载均衡和可恢复性",
+        "description" : "本文是《用 RSocket 解决响应式服务之间的通讯》微型系列的第二篇文章，它将帮助你熟悉 RSocket——一种可能会彻底改变机器之间通讯的新二进制协议。在以下段落中，我们将讨论在云环境中的负载平衡问题以及介绍可恢复性能力，可恢复性能力有助于解决网络问题，尤其是在 IOT 系统中。
+如果您不了解 RSocket 基础知识，请查看该系列之前的文章。 高可用性和负载平衡是企业级系统的重要能力 类似银行和保险等许多业务领域，可用性和可靠性是应用程序的核心能力。在这些要求苛刻的行业中，即使在高流量、网络问题导致延迟增加或自然灾害期间，服务也必须 24*7 全天候提供服务。为了确保该软件始终能够提供用户使用，通常会在多个可用区域中对其进行冗余部署。
+在这种情况下，每个微服务的至少两个实例部署在至少两个可用性区域中。多个可用区内冗余部署让系统具有弹性且增加了容量（更多个实例能够处理更高的负载）。那么这样会带来什么问题呢？冗余部署引入了额外的复杂性。作为研发人员，我们必须确保进入的的流量分布在所有可用实例中（如果流量打到不可用的实例上，会导致请求失败）。
+有两种主要的方法可解决这个问题：服务端负载平衡和客户端负载平衡。
+第一种方法（服务端负载平衡）基于以下假设，请求者不知道响应者的 IP 地址。取而代之的是，请求者与负载均衡器进行通信，负载均衡器负责在后端的微服务之间分配进入的请求，类似产品有 Ngnix。这种设计在云时代很容易采用。 IaaS 提供商通常具有内置的可靠解决方案，例如 Amazon Web Services 中提供的 Elastic Load Balancer。此外，这种设计有助于开发比普通轮询式负载均衡更复杂的路由策略（例如，自适应负载平衡或链式故障转移）。该服务端负载平衡的主要缺点是必须配置和部署额外的资源，如果我们的系统包含数百个微服务，这可能会很痛苦。此外，它可能会影响延迟-每个请求在负载均衡器上会增加了网络一跳。
+第二种方法（客户端负载平衡）与第一种方法有些相反。这里请求者知道给定微服务的每个实例的 IP 地址，而不是通过连接到响应者的中心点来进行负载均衡。有了这些微服务的实例 IP 地址，客户端就可以自己选择响应者实例，然后向其发送请求。该方法好处是不需要任何额外资源，但是必须确保请求者具有响应者所有实例的 IP 地址（请参阅如何使用服务发现模式来处理它）。客户端负载平衡模式的主要优点是其性能（可以减少一个额外的“网络跃点”），进而可以显着减少延迟。这也是 RSocket 实现客户端负载平衡模式的关键原因之一。
+RSocket 中的客户端负载平衡 在代码实现方面，RSocket 中客户端负载平衡的实现非常简单。该机制依赖于LoadBalancedRSocketMono对象，根据该对象会从一组可用的 RSocket 实例中选择合适的 RSocket 实例。要访问 RSocket，我们必须订阅LoadBalancedRSocketMono，onNext该方法接收所有 RSocket 实例。而且，它为每个 RSocket 计算统计信息，以便能够估计每个实例的负载，并在特定时间点根据该负载选择性能最佳的实例。
+该算法考虑了多个参数，例如延迟，保持的连接数以及未处理的请求数。每个 RSocket 的运行状况都由可用性参数反映出来，该参数的值从零到一，其中零表示给定实例无法处理任何请求，而一则表示分配的请求完全处理完成的 RSocket。下面的代码片段显示了 RSocket 负载平衡 的最基本示例，该示例连接到响应器的三个不同实例并执行 100 个请求。每次它从LoadBalancedRSocketMono对象获取 RSocket 。
+@Slf4j public class LoadBalancedClient { static final int[] PORTS = new int[]{7000, 7001, 7002}; public static void main(String[] args) { List rsocketSuppliers = Arrays.",
+        "inLanguage" : "zh",
+        "author" : "",
+        "creator" : "",
+        "publisher": "",
+        "accountablePerson" : "",
+        "copyrightHolder" : "",
+        "copyrightYear" : "2019",
+        "datePublished": "2019-10-07 00:00:00 &#43;0000 UTC",
+        "dateModified" : "2019-10-07 00:00:00 &#43;0000 UTC",
+        "url" : "https://andyyin.github.io/blog/%E8%AF%91%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E9%80%9A%E8%AE%AF-part-2%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1%E5%92%8C%E5%8F%AF%E6%81%A2%E5%A4%8D%E6%80%A7/",
+        "wordCount" : "278",
+        "keywords" : [ "RSocket","Blog" ]
+    }
+    </script>
+        
+            
+                <title>[译]用 RSocket 解决响应式服务之间的通讯-Part 2：负载均衡和可恢复性</title>
+            
+        
+
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="generator" content="Hugo 0.54.0" />
+        
+
+
+        
+            <meta name="author" content="涤生">
+        
+        
+            
+                <meta name="description" content="涤生的博客，主要分享 Java、JVM、中间件、架构设计、性能优化、Linux 底层技术等，欢迎支持加关注。涤生，姓名殷琦，目前就职于某大型互联网公司基础架构部，主要负责微服务框架、服务治理、Serverless 相关工作。 《高可用可伸缩微服务架构：基于Dubbo、Spring Cloud和Service Mesh》的作者之一，《Knative 入门》图书翻译之一。">
+            
+        
+
+        <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="[译]用 RSocket 解决响应式服务之间的通讯-Part 2：负载均衡和可恢复性"/>
+<meta name="twitter:description" content="本文是《用 RSocket 解决响应式服务之间的通讯》微型系列的第二篇文章，它将帮助你熟悉 RSocket——一种可能会彻底改变机器之间通讯的新二进制协议。在以下段落中，我们将讨论在云环境中的负载平衡问题以及介绍可恢复性能力，可恢复性能力有助于解决网络问题，尤其是在 IOT 系统中。
+如果您不了解 RSocket 基础知识，请查看该系列之前的文章。 高可用性和负载平衡是企业级系统的重要能力 类似银行和保险等许多业务领域，可用性和可靠性是应用程序的核心能力。在这些要求苛刻的行业中，即使在高流量、网络问题导致延迟增加或自然灾害期间，服务也必须 24*7 全天候提供服务。为了确保该软件始终能够提供用户使用，通常会在多个可用区域中对其进行冗余部署。
+在这种情况下，每个微服务的至少两个实例部署在至少两个可用性区域中。多个可用区内冗余部署让系统具有弹性且增加了容量（更多个实例能够处理更高的负载）。那么这样会带来什么问题呢？冗余部署引入了额外的复杂性。作为研发人员，我们必须确保进入的的流量分布在所有可用实例中（如果流量打到不可用的实例上，会导致请求失败）。
+有两种主要的方法可解决这个问题：服务端负载平衡和客户端负载平衡。
+第一种方法（服务端负载平衡）基于以下假设，请求者不知道响应者的 IP 地址。取而代之的是，请求者与负载均衡器进行通信，负载均衡器负责在后端的微服务之间分配进入的请求，类似产品有 Ngnix。这种设计在云时代很容易采用。 IaaS 提供商通常具有内置的可靠解决方案，例如 Amazon Web Services 中提供的 Elastic Load Balancer。此外，这种设计有助于开发比普通轮询式负载均衡更复杂的路由策略（例如，自适应负载平衡或链式故障转移）。该服务端负载平衡的主要缺点是必须配置和部署额外的资源，如果我们的系统包含数百个微服务，这可能会很痛苦。此外，它可能会影响延迟-每个请求在负载均衡器上会增加了网络一跳。
+第二种方法（客户端负载平衡）与第一种方法有些相反。这里请求者知道给定微服务的每个实例的 IP 地址，而不是通过连接到响应者的中心点来进行负载均衡。有了这些微服务的实例 IP 地址，客户端就可以自己选择响应者实例，然后向其发送请求。该方法好处是不需要任何额外资源，但是必须确保请求者具有响应者所有实例的 IP 地址（请参阅如何使用服务发现模式来处理它）。客户端负载平衡模式的主要优点是其性能（可以减少一个额外的“网络跃点”），进而可以显着减少延迟。这也是 RSocket 实现客户端负载平衡模式的关键原因之一。
+RSocket 中的客户端负载平衡 在代码实现方面，RSocket 中客户端负载平衡的实现非常简单。该机制依赖于LoadBalancedRSocketMono对象，根据该对象会从一组可用的 RSocket 实例中选择合适的 RSocket 实例。要访问 RSocket，我们必须订阅LoadBalancedRSocketMono，onNext该方法接收所有 RSocket 实例。而且，它为每个 RSocket 计算统计信息，以便能够估计每个实例的负载，并在特定时间点根据该负载选择性能最佳的实例。
+该算法考虑了多个参数，例如延迟，保持的连接数以及未处理的请求数。每个 RSocket 的运行状况都由可用性参数反映出来，该参数的值从零到一，其中零表示给定实例无法处理任何请求，而一则表示分配的请求完全处理完成的 RSocket。下面的代码片段显示了 RSocket 负载平衡 的最基本示例，该示例连接到响应器的三个不同实例并执行 100 个请求。每次它从LoadBalancedRSocketMono对象获取 RSocket 。
+@Slf4j public class LoadBalancedClient { static final int[] PORTS = new int[]{7000, 7001, 7002}; public static void main(String[] args) { List rsocketSuppliers = Arrays."/>
+
+        <meta property="og:title" content="[译]用 RSocket 解决响应式服务之间的通讯-Part 2：负载均衡和可恢复性" />
+<meta property="og:description" content="本文是《用 RSocket 解决响应式服务之间的通讯》微型系列的第二篇文章，它将帮助你熟悉 RSocket——一种可能会彻底改变机器之间通讯的新二进制协议。在以下段落中，我们将讨论在云环境中的负载平衡问题以及介绍可恢复性能力，可恢复性能力有助于解决网络问题，尤其是在 IOT 系统中。
+如果您不了解 RSocket 基础知识，请查看该系列之前的文章。 高可用性和负载平衡是企业级系统的重要能力 类似银行和保险等许多业务领域，可用性和可靠性是应用程序的核心能力。在这些要求苛刻的行业中，即使在高流量、网络问题导致延迟增加或自然灾害期间，服务也必须 24*7 全天候提供服务。为了确保该软件始终能够提供用户使用，通常会在多个可用区域中对其进行冗余部署。
+在这种情况下，每个微服务的至少两个实例部署在至少两个可用性区域中。多个可用区内冗余部署让系统具有弹性且增加了容量（更多个实例能够处理更高的负载）。那么这样会带来什么问题呢？冗余部署引入了额外的复杂性。作为研发人员，我们必须确保进入的的流量分布在所有可用实例中（如果流量打到不可用的实例上，会导致请求失败）。
+有两种主要的方法可解决这个问题：服务端负载平衡和客户端负载平衡。
+第一种方法（服务端负载平衡）基于以下假设，请求者不知道响应者的 IP 地址。取而代之的是，请求者与负载均衡器进行通信，负载均衡器负责在后端的微服务之间分配进入的请求，类似产品有 Ngnix。这种设计在云时代很容易采用。 IaaS 提供商通常具有内置的可靠解决方案，例如 Amazon Web Services 中提供的 Elastic Load Balancer。此外，这种设计有助于开发比普通轮询式负载均衡更复杂的路由策略（例如，自适应负载平衡或链式故障转移）。该服务端负载平衡的主要缺点是必须配置和部署额外的资源，如果我们的系统包含数百个微服务，这可能会很痛苦。此外，它可能会影响延迟-每个请求在负载均衡器上会增加了网络一跳。
+第二种方法（客户端负载平衡）与第一种方法有些相反。这里请求者知道给定微服务的每个实例的 IP 地址，而不是通过连接到响应者的中心点来进行负载均衡。有了这些微服务的实例 IP 地址，客户端就可以自己选择响应者实例，然后向其发送请求。该方法好处是不需要任何额外资源，但是必须确保请求者具有响应者所有实例的 IP 地址（请参阅如何使用服务发现模式来处理它）。客户端负载平衡模式的主要优点是其性能（可以减少一个额外的“网络跃点”），进而可以显着减少延迟。这也是 RSocket 实现客户端负载平衡模式的关键原因之一。
+RSocket 中的客户端负载平衡 在代码实现方面，RSocket 中客户端负载平衡的实现非常简单。该机制依赖于LoadBalancedRSocketMono对象，根据该对象会从一组可用的 RSocket 实例中选择合适的 RSocket 实例。要访问 RSocket，我们必须订阅LoadBalancedRSocketMono，onNext该方法接收所有 RSocket 实例。而且，它为每个 RSocket 计算统计信息，以便能够估计每个实例的负载，并在特定时间点根据该负载选择性能最佳的实例。
+该算法考虑了多个参数，例如延迟，保持的连接数以及未处理的请求数。每个 RSocket 的运行状况都由可用性参数反映出来，该参数的值从零到一，其中零表示给定实例无法处理任何请求，而一则表示分配的请求完全处理完成的 RSocket。下面的代码片段显示了 RSocket 负载平衡 的最基本示例，该示例连接到响应器的三个不同实例并执行 100 个请求。每次它从LoadBalancedRSocketMono对象获取 RSocket 。
+@Slf4j public class LoadBalancedClient { static final int[] PORTS = new int[]{7000, 7001, 7002}; public static void main(String[] args) { List rsocketSuppliers = Arrays." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://andyyin.github.io/blog/%E8%AF%91%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E9%80%9A%E8%AE%AF-part-2%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1%E5%92%8C%E5%8F%AF%E6%81%A2%E5%A4%8D%E6%80%A7/" />
+<meta property="article:published_time" content="2019-10-07T00:00:00&#43;00:00"/>
+<meta property="article:modified_time" content="2019-10-07T00:00:00&#43;00:00"/>
+
+        <meta property="og:image" content="https://andyyin.github.io/images/logo.png">
+        <meta property="og:image:type" content="image/png">
+        <meta property="og:image:width" content="512">
+        <meta property="og:image:height" content="512">
+        
+<meta itemprop="name" content="[译]用 RSocket 解决响应式服务之间的通讯-Part 2：负载均衡和可恢复性">
+<meta itemprop="description" content="本文是《用 RSocket 解决响应式服务之间的通讯》微型系列的第二篇文章，它将帮助你熟悉 RSocket——一种可能会彻底改变机器之间通讯的新二进制协议。在以下段落中，我们将讨论在云环境中的负载平衡问题以及介绍可恢复性能力，可恢复性能力有助于解决网络问题，尤其是在 IOT 系统中。
+如果您不了解 RSocket 基础知识，请查看该系列之前的文章。 高可用性和负载平衡是企业级系统的重要能力 类似银行和保险等许多业务领域，可用性和可靠性是应用程序的核心能力。在这些要求苛刻的行业中，即使在高流量、网络问题导致延迟增加或自然灾害期间，服务也必须 24*7 全天候提供服务。为了确保该软件始终能够提供用户使用，通常会在多个可用区域中对其进行冗余部署。
+在这种情况下，每个微服务的至少两个实例部署在至少两个可用性区域中。多个可用区内冗余部署让系统具有弹性且增加了容量（更多个实例能够处理更高的负载）。那么这样会带来什么问题呢？冗余部署引入了额外的复杂性。作为研发人员，我们必须确保进入的的流量分布在所有可用实例中（如果流量打到不可用的实例上，会导致请求失败）。
+有两种主要的方法可解决这个问题：服务端负载平衡和客户端负载平衡。
+第一种方法（服务端负载平衡）基于以下假设，请求者不知道响应者的 IP 地址。取而代之的是，请求者与负载均衡器进行通信，负载均衡器负责在后端的微服务之间分配进入的请求，类似产品有 Ngnix。这种设计在云时代很容易采用。 IaaS 提供商通常具有内置的可靠解决方案，例如 Amazon Web Services 中提供的 Elastic Load Balancer。此外，这种设计有助于开发比普通轮询式负载均衡更复杂的路由策略（例如，自适应负载平衡或链式故障转移）。该服务端负载平衡的主要缺点是必须配置和部署额外的资源，如果我们的系统包含数百个微服务，这可能会很痛苦。此外，它可能会影响延迟-每个请求在负载均衡器上会增加了网络一跳。
+第二种方法（客户端负载平衡）与第一种方法有些相反。这里请求者知道给定微服务的每个实例的 IP 地址，而不是通过连接到响应者的中心点来进行负载均衡。有了这些微服务的实例 IP 地址，客户端就可以自己选择响应者实例，然后向其发送请求。该方法好处是不需要任何额外资源，但是必须确保请求者具有响应者所有实例的 IP 地址（请参阅如何使用服务发现模式来处理它）。客户端负载平衡模式的主要优点是其性能（可以减少一个额外的“网络跃点”），进而可以显着减少延迟。这也是 RSocket 实现客户端负载平衡模式的关键原因之一。
+RSocket 中的客户端负载平衡 在代码实现方面，RSocket 中客户端负载平衡的实现非常简单。该机制依赖于LoadBalancedRSocketMono对象，根据该对象会从一组可用的 RSocket 实例中选择合适的 RSocket 实例。要访问 RSocket，我们必须订阅LoadBalancedRSocketMono，onNext该方法接收所有 RSocket 实例。而且，它为每个 RSocket 计算统计信息，以便能够估计每个实例的负载，并在特定时间点根据该负载选择性能最佳的实例。
+该算法考虑了多个参数，例如延迟，保持的连接数以及未处理的请求数。每个 RSocket 的运行状况都由可用性参数反映出来，该参数的值从零到一，其中零表示给定实例无法处理任何请求，而一则表示分配的请求完全处理完成的 RSocket。下面的代码片段显示了 RSocket 负载平衡 的最基本示例，该示例连接到响应器的三个不同实例并执行 100 个请求。每次它从LoadBalancedRSocketMono对象获取 RSocket 。
+@Slf4j public class LoadBalancedClient { static final int[] PORTS = new int[]{7000, 7001, 7002}; public static void main(String[] args) { List rsocketSuppliers = Arrays.">
+
+
+<meta itemprop="datePublished" content="2019-10-07T00:00:00&#43;00:00" />
+<meta itemprop="dateModified" content="2019-10-07T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="278">
+
+
+
+<meta itemprop="keywords" content="RSocket," />
+
+        
+
+        
+            
+        
+
+        
+        
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/atom-one-light.min.css">
+            <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway:400,800,900|Source+Sans+Pro:400,700">
+            <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.1.25/jquery.fancybox.min.css">
+            <link rel="stylesheet" href="https://andyyin.github.io/css/main.css">
+            <link rel="stylesheet" href="https://andyyin.github.io/css/add-on.css">
+            <link rel="stylesheet" href="https://andyyin.github.io/css/academicons.min.css">
+        
+
+        
+            
+                
+            
+        
+
+
+  
+    
+    <link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+  
+
+
+      
+    </head>
+    <body>
+
+      
+      <div id="wrapper">
+
+    
+    
+<header id="header">
+    
+      <h1><a href="https://andyyin.github.io/">涤生|个人博客</a></h1>
+    
+
+    <nav class="links">
+        <ul>
+            
+                <li>
+                    <a href="https://andyyin.github.io/">
+                            <i class="fa fa-home">&nbsp;</i>主页
+                    </a>
+                </li>
+            
+                <li>
+                    <a href="https://andyyin.github.io/blog/">
+                            <i class="fa fa-newspaper-o">&nbsp;</i>博客
+                    </a>
+                </li>
+            
+                <li>
+                    <a href="https://andyyin.github.io/categories/">
+                            <i class="fa fa-sitemap">&nbsp;</i>分类
+                    </a>
+                </li>
+            
+                <li>
+                    <a href="https://andyyin.github.io/about/">
+                            <i class="fa fa-id-card-o">&nbsp;</i>关于
+                    </a>
+                </li>
+            
+                <li>
+                    <a href="https://andyyin.github.io/links/">
+                            <i class="fa fa-link">&nbsp;</i>友链
+                    </a>
+                </li>
+            
+        </ul>
+    </nav>
+    <nav class="main">
+        <ul>
+            
+            <li id="share-nav" class="share-menu" style="display:none;">
+                <a class="fa-share-alt" href="#share-menu">Share</a>
+            </li>
+            
+            <li class="search">
+                <a class="fa-search" href="#search">Search</a>
+                <form id="search" method="get" action="//google.com/search">
+                    <input type="text" name="q" placeholder="Search" />
+                    <input type="hidden" name="as_sitesearch" value="https://andyyin.github.io">
+                </form>
+            </li>
+            <li class="menu">
+                <a class="fa-bars" href="#menu">Menu</a>
+            </li>
+        </ul>
+    </nav>
+</header>
+
+
+<section id="menu">
+
+    
+        <section>
+            <form class="search" method="get" action="//google.com/search">
+                <input type="text" name="q" placeholder="Search" />
+                <input type="hidden" name="as_sitesearch" value="https://andyyin.github.io">
+            </form>
+        </section>
+
+    
+        <section>
+            <ul class="links">
+                
+                    <li>
+                        <a href="https://andyyin.github.io/">
+                            <h3>
+                                <i class="fa fa-home">&nbsp;</i>主页
+                            </h3>
+                        </a>
+                    </li>
+                
+                    <li>
+                        <a href="https://andyyin.github.io/blog/">
+                            <h3>
+                                <i class="fa fa-newspaper-o">&nbsp;</i>博客
+                            </h3>
+                        </a>
+                    </li>
+                
+                    <li>
+                        <a href="https://andyyin.github.io/categories/">
+                            <h3>
+                                <i class="fa fa-sitemap">&nbsp;</i>分类
+                            </h3>
+                        </a>
+                    </li>
+                
+                    <li>
+                        <a href="https://andyyin.github.io/about/">
+                            <h3>
+                                <i class="fa fa-id-card-o">&nbsp;</i>关于
+                            </h3>
+                        </a>
+                    </li>
+                
+                    <li>
+                        <a href="https://andyyin.github.io/links/">
+                            <h3>
+                                <i class="fa fa-link">&nbsp;</i>友链
+                            </h3>
+                        </a>
+                    </li>
+                
+            </ul>
+        </section>
+
+    
+        <section class="recent-posts">
+            <div class="mini-posts">
+                <header>
+                    <h3>Recent Posts</h3>
+                </header>
+                
+
+                
+                    
+                
+
+                
+                        <article class="mini-post">
+                            <header>
+                                <h3><a href="https://andyyin.github.io/blog/%E8%AF%91%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E7%9A%84%E9%80%9A%E8%AE%AF-part-3%E5%9F%BA%E4%BA%8E-rsocket-%E8%BF%9B%E8%A1%8C%E6%8A%BD%E8%B1%A1/">[译]用 RSocket 解决响应式服务之间的的通讯-Part 3：基于 RSocket 进行抽象</a></h3>
+                                
+                                <time class="published" datetime=
+                                    '2019-11-18'>
+                                    November 18, 2019</time>
+                            </header>
+                            
+
+                        </article>
+                
+                        <article class="mini-post">
+                            <header>
+                                <h3><a href="https://andyyin.github.io/blog/eclipse-mat-incoming-outgoing-references-%E4%BD%A0%E7%9C%9F%E7%9A%84%E4%BA%86%E8%A7%A3%E5%90%97/">[译]Eclipse MAT — Incoming, Outgoing References 你真的了解吗？</a></h3>
+                                
+                                <time class="published" datetime=
+                                    '2019-10-25'>
+                                    October 25, 2019</time>
+                            </header>
+                            
+
+                        </article>
+                
+                        <article class="mini-post">
+                            <header>
+                                <h3><a href="https://andyyin.github.io/blog/eclipse-mat-shallow-heap-vs-retained-heap-%E4%BD%A0%E7%90%86%E8%A7%A3%E7%9A%84%E5%AF%B9%E5%90%97/">[译]Eclipse MAT: Shallow Heap Vs Retained Heap 你理解的对吗?</a></h3>
+                                
+                                <time class="published" datetime=
+                                    '2019-10-23'>
+                                    October 23, 2019</time>
+                            </header>
+                            
+
+                        </article>
+                
+                        <article class="mini-post">
+                            <header>
+                                <h3><a href="https://andyyin.github.io/blog/%E8%AF%91%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E9%80%9A%E8%AE%AF-part-2%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1%E5%92%8C%E5%8F%AF%E6%81%A2%E5%A4%8D%E6%80%A7/">[译]用 RSocket 解决响应式服务之间的通讯-Part 2：负载均衡和可恢复性</a></h3>
+                                
+                                <time class="published" datetime=
+                                    '2019-10-07'>
+                                    October 7, 2019</time>
+                            </header>
+                            
+
+                        </article>
+                
+                        <article class="mini-post">
+                            <header>
+                                <h3><a href="https://andyyin.github.io/blog/g1-gc%E4%B8%80%E4%B8%AA%E7%A5%9E%E5%A5%87%E7%9A%84-jvm-%E5%8F%82%E6%95%B0%E5%87%8F%E5%B0%91%E4%BD%A0%E7%9A%84%E5%86%85%E5%AD%98%E6%B6%88%E8%80%97/">[译]G1 GC：一个神奇的 JVM 参数，减少你的内存消耗</a></h3>
+                                
+                                <time class="published" datetime=
+                                    '2019-10-06'>
+                                    October 6, 2019</time>
+                            </header>
+                            
+
+                        </article>
+                
+
+                
+                    <a href=
+                        
+                            /blog/
+                        
+                        class="button">更多</a>
+                
+            </div>
+        </section>
+
+    
+        
+</section>
+
+    <section id="share-menu">
+    <section id="social-share-nav">
+        <ul class="links">
+            <header>
+                <h3>Share this post <i class="fa fa-smile-o"></i></h3>
+            </header>
+            
+
+
+
+<li>
+  <a href="//twitter.com/share?url=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E8%25AF%2591%25E7%2594%25A8-rsocket-%25E8%25A7%25A3%25E5%2586%25B3%25E5%2593%258D%25E5%25BA%2594%25E5%25BC%258F%25E6%259C%258D%25E5%258A%25A1%25E4%25B9%258B%25E9%2597%25B4%25E7%259A%2584%25E9%2580%259A%25E8%25AE%25AF-part-2%25E8%25B4%259F%25E8%25BD%25BD%25E5%259D%2587%25E8%25A1%25A1%25E5%2592%258C%25E5%258F%25AF%25E6%2581%25A2%25E5%25A4%258D%25E6%2580%25A7%2f&amp;text=%5b%e8%af%91%5d%e7%94%a8%20RSocket%20%e8%a7%a3%e5%86%b3%e5%93%8d%e5%ba%94%e5%bc%8f%e6%9c%8d%e5%8a%a1%e4%b9%8b%e9%97%b4%e7%9a%84%e9%80%9a%e8%ae%af-Part%202%ef%bc%9a%e8%b4%9f%e8%bd%bd%e5%9d%87%e8%a1%a1%e5%92%8c%e5%8f%af%e6%81%a2%e5%a4%8d%e6%80%a7&amp;via=" target="_blank" class="share-btn twitter">
+    <i class="fa fa-twitter"></i>
+    <p>Twitter</p>
+    </a>
+</li>
+
+
+
+
+<li>
+  <a href="//plus.google.com/share?url=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E8%25AF%2591%25E7%2594%25A8-rsocket-%25E8%25A7%25A3%25E5%2586%25B3%25E5%2593%258D%25E5%25BA%2594%25E5%25BC%258F%25E6%259C%258D%25E5%258A%25A1%25E4%25B9%258B%25E9%2597%25B4%25E7%259A%2584%25E9%2580%259A%25E8%25AE%25AF-part-2%25E8%25B4%259F%25E8%25BD%25BD%25E5%259D%2587%25E8%25A1%25A1%25E5%2592%258C%25E5%258F%25AF%25E6%2581%25A2%25E5%25A4%258D%25E6%2580%25A7%2f" target="_blank" class="share-btn google-plus">
+    <i class="fa fa-google-plus"></i>
+    <p>Google+</p>
+  </a>
+</li>
+
+
+
+
+
+<li>
+  <a href="//www.facebook.com/sharer/sharer.php?u=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E8%25AF%2591%25E7%2594%25A8-rsocket-%25E8%25A7%25A3%25E5%2586%25B3%25E5%2593%258D%25E5%25BA%2594%25E5%25BC%258F%25E6%259C%258D%25E5%258A%25A1%25E4%25B9%258B%25E9%2597%25B4%25E7%259A%2584%25E9%2580%259A%25E8%25AE%25AF-part-2%25E8%25B4%259F%25E8%25BD%25BD%25E5%259D%2587%25E8%25A1%25A1%25E5%2592%258C%25E5%258F%25AF%25E6%2581%25A2%25E5%25A4%258D%25E6%2580%25A7%2f" target="_blank" class="share-btn facebook">
+    <i class="fa fa-facebook"></i>
+    <p>Facebook</p>
+    </a>
+</li>
+
+
+
+
+<li>
+  <a href="//reddit.com/submit?url=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E8%25AF%2591%25E7%2594%25A8-rsocket-%25E8%25A7%25A3%25E5%2586%25B3%25E5%2593%258D%25E5%25BA%2594%25E5%25BC%258F%25E6%259C%258D%25E5%258A%25A1%25E4%25B9%258B%25E9%2597%25B4%25E7%259A%2584%25E9%2580%259A%25E8%25AE%25AF-part-2%25E8%25B4%259F%25E8%25BD%25BD%25E5%259D%2587%25E8%25A1%25A1%25E5%2592%258C%25E5%258F%25AF%25E6%2581%25A2%25E5%25A4%258D%25E6%2580%25A7%2f&amp;title=%5b%e8%af%91%5d%e7%94%a8%20RSocket%20%e8%a7%a3%e5%86%b3%e5%93%8d%e5%ba%94%e5%bc%8f%e6%9c%8d%e5%8a%a1%e4%b9%8b%e9%97%b4%e7%9a%84%e9%80%9a%e8%ae%af-Part%202%ef%bc%9a%e8%b4%9f%e8%bd%bd%e5%9d%87%e8%a1%a1%e5%92%8c%e5%8f%af%e6%81%a2%e5%a4%8d%e6%80%a7" target="_blank" class="share-btn reddit">
+    <i class="fa fa-reddit-alien"></i>
+    <p>Reddit</p>
+  </a>
+</li>
+
+
+
+
+<li>
+  <a href="//www.linkedin.com/shareArticle?url=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E8%25AF%2591%25E7%2594%25A8-rsocket-%25E8%25A7%25A3%25E5%2586%25B3%25E5%2593%258D%25E5%25BA%2594%25E5%25BC%258F%25E6%259C%258D%25E5%258A%25A1%25E4%25B9%258B%25E9%2597%25B4%25E7%259A%2584%25E9%2580%259A%25E8%25AE%25AF-part-2%25E8%25B4%259F%25E8%25BD%25BD%25E5%259D%2587%25E8%25A1%25A1%25E5%2592%258C%25E5%258F%25AF%25E6%2581%25A2%25E5%25A4%258D%25E6%2580%25A7%2f&amp;title=%5b%e8%af%91%5d%e7%94%a8%20RSocket%20%e8%a7%a3%e5%86%b3%e5%93%8d%e5%ba%94%e5%bc%8f%e6%9c%8d%e5%8a%a1%e4%b9%8b%e9%97%b4%e7%9a%84%e9%80%9a%e8%ae%af-Part%202%ef%bc%9a%e8%b4%9f%e8%bd%bd%e5%9d%87%e8%a1%a1%e5%92%8c%e5%8f%af%e6%81%a2%e5%a4%8d%e6%80%a7" target="_blank" class="share-btn linkedin">
+      <i class="fa fa-linkedin"></i>
+      <p>LinkedIn</p>
+    </a>
+</li>
+
+
+
+
+<li>
+  <a href="//www.stumbleupon.com/submit?url=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E8%25AF%2591%25E7%2594%25A8-rsocket-%25E8%25A7%25A3%25E5%2586%25B3%25E5%2593%258D%25E5%25BA%2594%25E5%25BC%258F%25E6%259C%258D%25E5%258A%25A1%25E4%25B9%258B%25E9%2597%25B4%25E7%259A%2584%25E9%2580%259A%25E8%25AE%25AF-part-2%25E8%25B4%259F%25E8%25BD%25BD%25E5%259D%2587%25E8%25A1%25A1%25E5%2592%258C%25E5%258F%25AF%25E6%2581%25A2%25E5%25A4%258D%25E6%2580%25A7%2f&amp;title=%5b%e8%af%91%5d%e7%94%a8%20RSocket%20%e8%a7%a3%e5%86%b3%e5%93%8d%e5%ba%94%e5%bc%8f%e6%9c%8d%e5%8a%a1%e4%b9%8b%e9%97%b4%e7%9a%84%e9%80%9a%e8%ae%af-Part%202%ef%bc%9a%e8%b4%9f%e8%bd%bd%e5%9d%87%e8%a1%a1%e5%92%8c%e5%8f%af%e6%81%a2%e5%a4%8d%e6%80%a7" target="_blank" class="share-btn stumbleupon">
+    <i class="fa fa-stumbleupon"></i>
+    <p>StumbleUpon</p>
+  </a>
+</li>
+
+
+
+
+<li>
+  <a href="//www.pinterest.com/pin/create/button/?url=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E8%25AF%2591%25E7%2594%25A8-rsocket-%25E8%25A7%25A3%25E5%2586%25B3%25E5%2593%258D%25E5%25BA%2594%25E5%25BC%258F%25E6%259C%258D%25E5%258A%25A1%25E4%25B9%258B%25E9%2597%25B4%25E7%259A%2584%25E9%2580%259A%25E8%25AE%25AF-part-2%25E8%25B4%259F%25E8%25BD%25BD%25E5%259D%2587%25E8%25A1%25A1%25E5%2592%258C%25E5%258F%25AF%25E6%2581%25A2%25E5%25A4%258D%25E6%2580%25A7%2f&amp;description=%5b%e8%af%91%5d%e7%94%a8%20RSocket%20%e8%a7%a3%e5%86%b3%e5%93%8d%e5%ba%94%e5%bc%8f%e6%9c%8d%e5%8a%a1%e4%b9%8b%e9%97%b4%e7%9a%84%e9%80%9a%e8%ae%af-Part%202%ef%bc%9a%e8%b4%9f%e8%bd%bd%e5%9d%87%e8%a1%a1%e5%92%8c%e5%8f%af%e6%81%a2%e5%a4%8d%e6%80%a7" target="_blank" class="share-btn pinterest">
+    <i class="fa fa-pinterest-p"></i>
+    <p>Pinterest</p>
+  </a>
+</li>
+
+
+
+
+<li>
+  <a href="mailto:?subject=Check out this post by %e6%b6%a4%e7%94%9f&amp;body=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E8%25AF%2591%25E7%2594%25A8-rsocket-%25E8%25A7%25A3%25E5%2586%25B3%25E5%2593%258D%25E5%25BA%2594%25E5%25BC%258F%25E6%259C%258D%25E5%258A%25A1%25E4%25B9%258B%25E9%2597%25B4%25E7%259A%2584%25E9%2580%259A%25E8%25AE%25AF-part-2%25E8%25B4%259F%25E8%25BD%25BD%25E5%259D%2587%25E8%25A1%25A1%25E5%2592%258C%25E5%258F%25AF%25E6%2581%25A2%25E5%25A4%258D%25E6%2580%25A7%2f" target="_blank" class="share-btn email">
+    <i class="fa fa-envelope"></i>
+    <p>Email</p>
+  </a>
+</li>
+
+
+        </ul>
+    </section>
+</section>
+
+    
+    <div id="main">
+        
+        
+        <article class="post">
+  <header>
+    <div class="title">
+        
+            <h1><a href="https://andyyin.github.io/blog/%E8%AF%91%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E9%80%9A%E8%AE%AF-part-2%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1%E5%92%8C%E5%8F%AF%E6%81%A2%E5%A4%8D%E6%80%A7/">[译]用 RSocket 解决响应式服务之间的通讯-Part 2：负载均衡和可恢复性</a></h1>
+            
+        
+        
+    </div>
+    <div class="meta">
+        
+
+        <time class="published"
+            datetime='2019-10-07'>
+            2019-10-07</time>
+        <span class="author">涤生</span>
+        
+            <p>2 分钟阅读</p>
+        
+        
+    </div>
+</header>
+
+
+  
+
+  
+
+  <div id="content">
+    
+
+<p>本文是《用 RSocket 解决响应式服务之间的通讯》微型系列的第二篇文章，它将帮助你熟悉 <a href="https://github.com/b3rnoulli/rsocket-examples">RSocket</a>——一种可能会彻底改变机器之间通讯的新二进制协议。在以下段落中，我们将讨论在云环境中的<strong>负载平衡问题</strong>以及介绍<strong>可恢复性</strong>能力，可恢复性能力有助于解决网络问题，尤其是在 IOT 系统中。</p>
+
+<p>如果您不了解 RSocket 基础知识，请查看该系列之前的文章。
+<img src="https://andyyin.github.io/img/2019/10/rsocket2/cover1.png" alt="" /></p>
+
+<h2 id="高可用性和负载平衡是企业级系统的重要能力">高可用性和负载平衡是企业级系统的重要能力</h2>
+
+<p>类似银行和保险等许多业务领域，可用性和可靠性是应用程序的核心能力。在这些要求苛刻的行业中，即使在高流量、网络问题导致延迟增加或自然灾害期间，服务也必须 24*7 全天候提供服务。为了确保该软件始终能够提供用户使用，通常会在多个可用区域中对其进行冗余部署。</p>
+
+<p>在这种情况下，每个微服务的至少两个实例部署在至少两个可用性区域中。多个可用区内冗余部署让系统具有弹性且增加了容量（更多个实例能够处理更高的负载）。那么这样会带来什么问题呢？冗余部署引入了额外的复杂性。作为研发人员，我们必须确保进入的的流量分布在所有可用实例中（如果流量打到不可用的实例上，会导致请求失败）。</p>
+
+<p>有两种主要的方法可解决这个问题：<strong>服务端负载平衡和客户端负载平衡</strong>。</p>
+
+<p><strong>第一种方法（服务端负载平衡）</strong>基于以下假设，请求者不知道响应者的 IP 地址。取而代之的是，请求者与负载均衡器进行通信，负载均衡器负责在后端的微服务之间分配进入的请求，类似产品有 Ngnix。这种设计在云时代很容易采用。 IaaS 提供商通常具有内置的可靠解决方案，例如 Amazon Web Services 中提供的 Elastic Load Balancer。此外，这种设计有助于开发比普通轮询式负载均衡更复杂的路由策略（例如，<a href="https://kemptechnologies.com/load-balancer/load-balancing-algorithms-techniques/">自适应负载平衡或链式故障转移</a>）。该服务端负载平衡的主要缺点是必须配置和部署额外的资源，如果我们的系统包含数百个微服务，这可能会很痛苦。此外，它可能会影响延迟-每个请求在负载均衡器上会增加了网络一跳。</p>
+
+<p><strong>第二种方法（客户端负载平衡）</strong>与第一种方法有些相反。这里请求者知道给定微服务的每个实例的 IP 地址，而不是通过连接到响应者的中心点来进行负载均衡。有了这些微服务的实例 IP 地址，客户端就可以自己选择响应者实例，然后向其发送请求。该方法好处是不需要任何额外资源，但是必须确保请求者具有响应者所有实例的 IP 地址（<a href="https://medium.com/@%20jamesemyn%20/%20microsrvice-cbd54afb94f3%E4%B8%AD%E7%9A%84%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0">请参阅如何使用服务发现模式来处理它</a>）。客户端负载平衡模式的主要优点是其性能（可以减少一个额外的“网络跃点”），进而可以显着减少延迟。这也是 RSocket 实现客户端负载平衡模式的关键原因之一。</p>
+
+<p><img src="https://andyyin.github.io/img/2019/10/rsocket2/reactives6.png" alt="Load Balance" /></p>
+
+<h2 id="rsocket-中的客户端负载平衡">RSocket 中的客户端负载平衡</h2>
+
+<p>在代码实现方面，RSocket 中客户端负载平衡的实现非常简单。该机制依赖于<code>LoadBalancedRSocketMono</code>对象，根据该对象会从一组可用的 RSocket 实例中选择合适的 RSocket 实例。要访问 RSocket，我们必须订阅<code>LoadBalancedRSocketMono</code>，<code>onNext</code>该方法接收所有 RSocket 实例。而且，它为每个 RSocket 计算统计信息，以便能够估计每个实例的负载，并在特定时间点根据该负载选择性能最佳的实例。</p>
+
+<p>该算法考虑了多个参数，例如延迟，保持的连接数以及未处理的请求数。每个 RSocket 的运行状况都由可用性参数反映出来，该参数的值从零到一，其中零表示给定实例无法处理任何请求，而一则表示分配的请求完全处理完成的 RSocket。下面的代码片段显示了 RSocket 负载平衡 的最基本示例，该示例连接到响应器的三个不同实例并执行 100 个请求。每次它从<code>LoadBalancedRSocketMono</code>对象获取 RSocket 。</p>
+
+<pre><code>@Slf4j
+public class LoadBalancedClient {
+    static final int[] PORTS = new int[]{7000, 7001, 7002};
+    public static void main(String[] args) {
+        List rsocketSuppliers = Arrays.stream(PORTS)
+                .mapToObj(port -&gt; new RSocketSupplier(() -&gt; RSocketFactory.connect()
+                        .transport(TcpClientTransport.create(HOST, port))
+                        .start()))
+                .collect(Collectors.toList());
+        LoadBalancedRSocketMono balancer = LoadBalancedRSocketMono.create((Publisher&gt;) s -&gt; {
+            s.onNext(rsocketSuppliers);
+            s.onComplete();
+        });
+        Flux.range(0, 100)
+                .flatMap(i -&gt; balancer)
+                .doOnNext(rSocket -&gt; rSocket.requestResponse(DefaultPayload.create(&quot;test-request&quot;)).block())
+                .blockLast();
+    }
+}
+</code></pre>
+
+<p>值得提到的是，RSocket 中的客户端负载均衡器还会处理无效连接。如果在<code>LoadBalancedRSocketMono</code>中注册的任何 RSocket 实例停止响应，RSocket 将会自动尝试重新连接。默认情况下，它将在 25 秒内执行五次尝试。如果未成功，则将从可用连接池中删除给定的 RSocket。这种设计结合了服务器端负载平衡和低延迟的优点，并减少了客户端负载平衡的“网络跳数”。</p>
+
+<h2 id="无效连接和恢复机制">无效连接和恢复机制</h2>
+
+<p>在云环境中，进行机器之间通信，实时流数据交互一般不会出现什么网络问题，但是试想一下，如果我们将物联网设备放置在无法稳定、可靠地通过网络连接访问的区域中，问题就比较复杂了。很容易想到，在这样的环境中可能面临的两个主要问题：<strong>“网络延迟”</strong>和<strong>“连接稳定性”</strong>。从软件的角度来看，我们对“网络延迟”可能没有太好的办法，但是对于“连接稳定性”我们还能够做些工作的。</p>
+
+<p>我们来试试用 RSocket 解决问题，先来<a href="https://medium.com/@b3rnoulli/reactive-service-to-service-communication-with-rsocket-introduction-5d64e5b6909">选择合适的交互模型开始</a>。在这种情况下，最合适的是<strong>“请求流”</strong>方法，其中部署在云环境中的微服务是请求者，而温度传感器是响应者。选择好交互模型后，我们再应用可恢复性策略。在 RSocket 中，我们通过在<code>RSocketFactory</code>上调用的<code>resume()</code>方法来实现，如下例所示：</p>
+
+<pre><code>@Slf4j
+public class ResumableRequester {
+    private static final int CLIENT_PORT = 7001;
+    public static void main(String[] args) {
+        RSocket socket = RSocketFactory.connect()
+                .resume()
+                .resumeSessionDuration(RESUME_SESSION_DURATION)
+                .transport(TcpClientTransport.create(HOST, CLIENT_PORT))
+                .start()
+                .block();
+        socket.requestStream(DefaultPayload.create(&quot;dummy&quot;))
+                .map(payload -&gt; {
+                    log.info(&quot;Received data: [{}]&quot;, payload.getDataUtf8());
+                    return payload;
+                })
+                .blockLast();
+    }
+}
+</code></pre>
+
+<pre><code>@Slf4j
+public class ResumableResponder {
+    private static final int SERVER_PORT = 7000;
+    static final String HOST = &quot;localhost&quot;;
+    static final Duration RESUME_SESSION_DURATION = Duration.ofSeconds(60);
+    public static void main(String[] args) throws InterruptedException {
+        RSocketFactory.receive()
+                .resume()
+                .resumeSessionDuration(RESUME_SESSION_DURATION)
+                .acceptor((setup, sendingSocket) -&gt; Mono.just(new AbstractRSocket() {
+                    @Override
+                    public Flux requestStream(Payload payload) {
+                        log.info(&quot;Received 'requestStream' request with payload: [{}]&quot;, payload.getDataUtf8());
+                        return Flux.interval(Duration.ofMillis(1000))
+                                .map(t -&gt; DefaultPayload.create(t.toString()));
+                    }
+                }))
+                .transport(TcpServerTransport.create(HOST, SERVER_PORT))
+                .start()
+                .subscribe();
+        log.info(&quot;Server running&quot;);
+        Thread.currentThread().join();
+    }
+}
+</code></pre>
+
+<p>请注意，要运行提供的示例，您需要在计算机上安装<code>socat</code>，请参阅<a href="https://github.com/b3rnoulli/rsocket-examples/tree/master/resumability">README</a>文件以了解更多详细信息</p>
+
+<p>请求方和响应方的机制类似，它基于一些组件。首先，有一个<code>ResumableFramesStore</code>，它用作帧的缓冲区。按照默认实现，它会将它们存储在内存中，但是我们可以通过实现<code>ResumableFramesStore</code>接口（例如，将帧存储在分布式缓存中，如 Redis）来轻松调整以满足业务的需求。这个缓冲区是用来保存在“keep-alive 帧”之间发出的数据，“keep-alive 帧”是定期来回发送，能够探测出交互双方之间的连接是否稳定；另外，“keep-alive 帧（保活帧）”还包含令牌，这个令牌是为了确定请求者和响应者的最后接收位置。当交互双方需要要恢复连接时，它将发送带有<strong>“隐含位置”</strong>的“resume 帧（恢复帧）”。隐含位置是根据上次接收到的位置（与“保活帧”中的值相同）加上该时刻接收到的帧的长度计算得出的。此算法适用于通信的双方，在恢复帧中会含有<strong>“最后接收的服务器位置”</strong>和<strong>“第一个客户端可用位置”</strong>信息的令牌。下图显示了恢复操作的整个流程：</p>
+
+<p><img src="https://andyyin.github.io/img/2019/10/rsocket2/reactives8.png" alt="Resumabilty Mechanism" /></p>
+
+<p>通过采用 RSocket 协议中内置的可恢复性机制，我们可以用相对较少的精力来减少网络问题的影响。就像上面的示例所示，可恢复性在数据流应用程序中可能非常有用，尤其是在 IOT 设备与云环境中的服务通信的场景下。</p>
+
+<h2 id="总结">总结</h2>
+
+<p>在本文中，我们讨论了 RSocket 协议的更多高级功能，这些功能有助于减少网络对系统可操作性的影响。我们介绍了客户端负载平衡模式和可恢复性机制的实现。这些功能与健壮的交互模型相结合，构成了协议的核心。</p>
+
+<p>在本微型系列的最后一篇文章中，我们将介绍 RSocket 之上的构建可用抽象层。</p>
+
+<p>作者：<a href="https://dzone.com/users/3693925/b3rnoulli.html">Rafał Kowalski</a> ，原文：<a href="https://dzone.com/articles/reactive-service-to-service-communication-with-rso-2">Reactive Service-To-Service Communication With RSocket (Part 2): Load Balancing and Resumability</a></p>
+
+<hr />
+
+<blockquote>
+<p>涤生的博客。</p>
+
+<p>转载请注明原创出处，谢谢！</p>
+
+<p>欢迎关注我的微信公众号：「涤生的博客」，获取更多技术分享。</p>
+</blockquote>
+
+<p><img src="https://andyyin.github.io/img/main/officialAccount.jpg" alt="涤生-微信公共号" /></p>
+
+  </div>
+
+  <footer>
+    <ul class="stats">
+  <li class="categories">
+    <ul>
+        
+            
+            
+                <i class="fa fa-folder"></i>
+                
+                
+                <li><a class="article-category-link" href="https://andyyin.github.io/categories/rsocket">RSocket</a></li>
+                
+            
+        
+    </ul>
+  </li>
+  <li class="tags">
+    <ul>
+        
+            
+            
+                <i class="fa fa-tags"></i>
+                
+                
+                <li><a class="article-category-link" href="https://andyyin.github.io/tags/rsocket">RSocket</a></li>
+                
+            
+        
+    </ul>
+  </li>
+</ul>
+
+  </footer>
+
+</article>
+
+<ul class="actions pagination">
+    
+        <li><a href="https://andyyin.github.io/blog/g1-gc%E4%B8%80%E4%B8%AA%E7%A5%9E%E5%A5%87%E7%9A%84-jvm-%E5%8F%82%E6%95%B0%E5%87%8F%E5%B0%91%E4%BD%A0%E7%9A%84%E5%86%85%E5%AD%98%E6%B6%88%E8%80%97/"
+                class="button big previous">[译]G1 GC：一个神奇的 JVM 参数，减少你的内存消耗</a></li>
+    
+
+    
+        <li><a href="https://andyyin.github.io/blog/eclipse-mat-shallow-heap-vs-retained-heap-%E4%BD%A0%E7%90%86%E8%A7%A3%E7%9A%84%E5%AF%B9%E5%90%97/"
+                class="button big next">[译]Eclipse MAT: Shallow Heap Vs Retained Heap 你理解的对吗?</a></li>
+    
+</ul>
+
+
+    </div>
+    
+<section id="sidebar">
+
+  
+  <section id="intro">
+    
+    
+      
+        <a href='https://andyyin.github.io/'><img src="https://andyyin.github.io/img/main/disheng.jpg" class="intro-circle" width="100" alt="涤生的博客" /></a>
+      
+    
+    
+      <header>
+        <h2>涤生的博客</h2>
+        <p>主要分享 Java、JVM、中间件、架构设计、性能优化、Linux 底层技术等，欢迎支持加关注。</p>
+      </header>
+    
+    
+      <ul class="icons">
+        
+          
+    <li><a href="https://andyyin.github.io/index.xml" type="application/rss+xml" target="_blank" title="RSS" class="fa fa-rss"></a></li>
+
+
+        
+        
+  <li><a href="//github.com/andyyin" target="_blank" title="GitHub" class="fa fa-github"></a></li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <li><a href="https://andyyin.github.io/img/main/wechat.jpeg" target="_blank" title="WeChat" class="fa fa-weixin"></a></li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <li><a href="mailto:yyqqyinqi568@126.com" title="Email" class="fa fa-envelope"></a></li>
+
+
+      </ul>
+    
+  </section>
+
+  
+  <section class="recent-posts">
+    <div class="mini-posts">
+      <header>
+        <h3>最新文章</h3>
+      </header>
+      <div class="posts-container">
+        
+
+        
+          
+        
+
+        
+          <article class="mini-post">
+            <header>
+              <h3>
+                <a href="https://andyyin.github.io/blog/%E8%AF%91%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E7%9A%84%E9%80%9A%E8%AE%AF-part-3%E5%9F%BA%E4%BA%8E-rsocket-%E8%BF%9B%E8%A1%8C%E6%8A%BD%E8%B1%A1/">[译]用 RSocket 解决响应式服务之间的的通讯-Part 3：基于 RSocket 进行抽象</a>
+              </h3>
+              
+              <time class="published" datetime='2019-11-18'>
+                2019-11-18
+              </time>
+            </header>
+            
+
+          </article>
+        
+          <article class="mini-post">
+            <header>
+              <h3>
+                <a href="https://andyyin.github.io/blog/eclipse-mat-incoming-outgoing-references-%E4%BD%A0%E7%9C%9F%E7%9A%84%E4%BA%86%E8%A7%A3%E5%90%97/">[译]Eclipse MAT — Incoming, Outgoing References 你真的了解吗？</a>
+              </h3>
+              
+              <time class="published" datetime='2019-10-25'>
+                2019-10-25
+              </time>
+            </header>
+            
+
+          </article>
+        
+          <article class="mini-post">
+            <header>
+              <h3>
+                <a href="https://andyyin.github.io/blog/eclipse-mat-shallow-heap-vs-retained-heap-%E4%BD%A0%E7%90%86%E8%A7%A3%E7%9A%84%E5%AF%B9%E5%90%97/">[译]Eclipse MAT: Shallow Heap Vs Retained Heap 你理解的对吗?</a>
+              </h3>
+              
+              <time class="published" datetime='2019-10-23'>
+                2019-10-23
+              </time>
+            </header>
+            
+
+          </article>
+        
+          <article class="mini-post">
+            <header>
+              <h3>
+                <a href="https://andyyin.github.io/blog/%E8%AF%91%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E9%80%9A%E8%AE%AF-part-2%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1%E5%92%8C%E5%8F%AF%E6%81%A2%E5%A4%8D%E6%80%A7/">[译]用 RSocket 解决响应式服务之间的通讯-Part 2：负载均衡和可恢复性</a>
+              </h3>
+              
+              <time class="published" datetime='2019-10-07'>
+                2019-10-07
+              </time>
+            </header>
+            
+
+          </article>
+        
+          <article class="mini-post">
+            <header>
+              <h3>
+                <a href="https://andyyin.github.io/blog/g1-gc%E4%B8%80%E4%B8%AA%E7%A5%9E%E5%A5%87%E7%9A%84-jvm-%E5%8F%82%E6%95%B0%E5%87%8F%E5%B0%91%E4%BD%A0%E7%9A%84%E5%86%85%E5%AD%98%E6%B6%88%E8%80%97/">[译]G1 GC：一个神奇的 JVM 参数，减少你的内存消耗</a>
+              </h3>
+              
+              <time class="published" datetime='2019-10-06'>
+                2019-10-06
+              </time>
+            </header>
+            
+
+          </article>
+        
+      </div>
+
+      
+        <a href=
+          
+            /blog/
+          
+        class="button">更多</a>
+      
+    </div>
+  </section>
+
+  
+  
+  
+  
+  
+    <section id="categories">
+      <header>
+        <h3>
+          <a href="https://andyyin.github.io/categories/">分类</a>
+        </h3>
+      </header>
+        
+          
+        
+
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/java/">Java</a>
+                <span style="float:right;">15</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/gc/">GC</a>
+                <span style="float:right;">14</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/jvm/">JVM</a>
+                <span style="float:right;">12</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/rsocket/">RSocket</a>
+                <span style="float:right;">3</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/eclipse-mat/">Eclipse MAT</a>
+                <span style="float:right;">2</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/g1/">G1</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/http/">HTTP</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/incoming-references/">Incoming References</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/outgoing-references/">Outgoing References</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/retained-heap/">Retained Heap</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/shallow-heap/">Shallow Heap</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/zookeeper/">Zookeeper</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/%E7%AE%A1%E7%90%86/">管理</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/">系统设计</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+    </section>
+  
+  
+
+  
+  
+    <section id="mini-bio">
+      <h3>关于我</h3>
+      <p>涤生，姓名殷琦，目前就职于某大型互联网公司基础架构部，主要负责微服务框架、服务治理、Serverless 相关工作。 《高可用可伸缩微服务架构：基于Dubbo、Spring Cloud和Service Mesh》的作者之一，《Knative 入门》图书翻译之一。 </p>
+      <a href="https://andyyin.github.io/about/" class="button">了解更多</a>
+    </section>
+  
+
+  
+  <section id="footer">
+    
+      <ul class="icons">
+        
+          
+    <li><a href="https://andyyin.github.io/index.xml" type="application/rss+xml" target="_blank" title="RSS" class="fa fa-rss"></a></li>
+
+
+        
+        
+  <li><a href="//github.com/andyyin" target="_blank" title="GitHub" class="fa fa-github"></a></li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <li><a href="https://andyyin.github.io/img/main/wechat.jpeg" target="_blank" title="WeChat" class="fa fa-weixin"></a></li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <li><a href="mailto:yyqqyinqi568@126.com" title="Email" class="fa fa-envelope"></a></li>
+
+
+      </ul>
+    
+    <p class="copyright">
+      
+        &copy; 2019
+        
+          涤生的博客
+        
+      .
+      Powered by <a href="https://andyyin.github.io/" target="_blank">涤生</a>
+    </p>
+  </section>
+</section>
+
+    </div>
+    <a id="back-to-top" href="#" class="fa fa-arrow-up fa-border fa-2x"></a>
+    
+
+    
+      
+    
+
+    
+      
+      
+      
+        <script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+        
+        
+        
+        <script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+        <script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+        <script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/css.min.js"></script>
+        <script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+      
+    
+    
+    
+      <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/skel/3.0.1/skel.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.1.25/jquery.fancybox.min.js"></script>
+      <script src="https://andyyin.github.io/js/util.js"></script>
+      <script src="https://andyyin.github.io/js/main.js"></script>
+      <script src="https://andyyin.github.io/js/backToTop.js"></script>
+    
+
+    
+      
+        
+      
+    
+
+    
+    <script>hljs.initHighlightingOnLoad();</script>
+      <script src="//yihui.name/js/math-code.js"></script>
+<script async
+src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+  </body>
+</html>
+

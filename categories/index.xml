@@ -21,9 +21,27 @@
     </item>
     
     <item>
+      <title>Eclipse MAT</title>
+      <link>https://andyyin.github.io/categories/eclipse-mat/</link>
+      <pubDate>Fri, 25 Oct 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://andyyin.github.io/categories/eclipse-mat/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>G1</title>
+      <link>https://andyyin.github.io/categories/g1/</link>
+      <pubDate>Sun, 06 Oct 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://andyyin.github.io/categories/g1/</guid>
+      <description></description>
+    </item>
+    
+    <item>
       <title>GC</title>
       <link>https://andyyin.github.io/categories/gc/</link>
-      <pubDate>Wed, 02 Oct 2019 00:00:00 +0000</pubDate>
+      <pubDate>Sun, 06 Oct 2019 00:00:00 +0000</pubDate>
       
       <guid>https://andyyin.github.io/categories/gc/</guid>
       <description></description>
@@ -39,9 +57,18 @@
     </item>
     
     <item>
+      <title>Incoming References</title>
+      <link>https://andyyin.github.io/categories/incoming-references/</link>
+      <pubDate>Fri, 25 Oct 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://andyyin.github.io/categories/incoming-references/</guid>
+      <description></description>
+    </item>
+    
+    <item>
       <title>JVM</title>
       <link>https://andyyin.github.io/categories/jvm/</link>
-      <pubDate>Wed, 02 Oct 2019 00:00:00 +0000</pubDate>
+      <pubDate>Sun, 06 Oct 2019 00:00:00 +0000</pubDate>
       
       <guid>https://andyyin.github.io/categories/jvm/</guid>
       <description></description>
@@ -57,11 +84,38 @@
     </item>
     
     <item>
+      <title>Outgoing References</title>
+      <link>https://andyyin.github.io/categories/outgoing-references/</link>
+      <pubDate>Fri, 25 Oct 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://andyyin.github.io/categories/outgoing-references/</guid>
+      <description></description>
+    </item>
+    
+    <item>
       <title>RSocket</title>
       <link>https://andyyin.github.io/categories/rsocket/</link>
-      <pubDate>Fri, 04 Oct 2019 00:00:00 +0000</pubDate>
+      <pubDate>Mon, 18 Nov 2019 00:00:00 +0000</pubDate>
       
       <guid>https://andyyin.github.io/categories/rsocket/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Retained Heap</title>
+      <link>https://andyyin.github.io/categories/retained-heap/</link>
+      <pubDate>Wed, 23 Oct 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://andyyin.github.io/categories/retained-heap/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Shallow Heap</title>
+      <link>https://andyyin.github.io/categories/shallow-heap/</link>
+      <pubDate>Wed, 23 Oct 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://andyyin.github.io/categories/shallow-heap/</guid>
       <description></description>
     </item>
     

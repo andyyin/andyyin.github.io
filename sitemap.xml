@@ -3,7 +3,32 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
-    <loc>https://andyyin.github.io/blog/%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E9%80%9A%E8%AE%AF-part-1/</loc>
+    <loc>https://andyyin.github.io/blog/%E8%AF%91%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E7%9A%84%E9%80%9A%E8%AE%AF-part-3%E5%9F%BA%E4%BA%8E-rsocket-%E8%BF%9B%E8%A1%8C%E6%8A%BD%E8%B1%A1/</loc>
+    <lastmod>2019-11-18T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://andyyin.github.io/blog/eclipse-mat-incoming-outgoing-references-%E4%BD%A0%E7%9C%9F%E7%9A%84%E4%BA%86%E8%A7%A3%E5%90%97/</loc>
+    <lastmod>2019-10-25T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://andyyin.github.io/blog/eclipse-mat-shallow-heap-vs-retained-heap-%E4%BD%A0%E7%90%86%E8%A7%A3%E7%9A%84%E5%AF%B9%E5%90%97/</loc>
+    <lastmod>2019-10-23T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://andyyin.github.io/blog/%E8%AF%91%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E9%80%9A%E8%AE%AF-part-2%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1%E5%92%8C%E5%8F%AF%E6%81%A2%E5%A4%8D%E6%80%A7/</loc>
+    <lastmod>2019-10-07T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://andyyin.github.io/blog/g1-gc%E4%B8%80%E4%B8%AA%E7%A5%9E%E5%A5%87%E7%9A%84-jvm-%E5%8F%82%E6%95%B0%E5%87%8F%E5%B0%91%E4%BD%A0%E7%9A%84%E5%86%85%E5%AD%98%E6%B6%88%E8%80%97/</loc>
+    <lastmod>2019-10-06T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://andyyin.github.io/blog/%E8%AF%91%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E9%80%9A%E8%AE%AF-part-1/</loc>
     <lastmod>2019-10-04T00:00:00+00:00</lastmod>
   </url>
   
@@ -130,7 +155,7 @@
   
   <url>
     <loc>https://andyyin.github.io/blog/</loc>
-    <lastmod>2019-10-04T00:00:00+00:00</lastmod>
+    <lastmod>2019-11-18T00:00:00+00:00</lastmod>
     <priority>0</priority>
   </url>
   
@@ -169,6 +194,18 @@
   </url>
   
   <url>
+    <loc>https://andyyin.github.io/tags/eclipse-mat/</loc>
+    <lastmod>2019-10-25T00:00:00+00:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>https://andyyin.github.io/categories/eclipse-mat/</loc>
+    <lastmod>2019-10-25T00:00:00+00:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
     <loc>https://andyyin.github.io/tags/finalreference/</loc>
     <lastmod>2019-02-23T00:00:00+00:00</lastmod>
     <priority>0</priority>
@@ -181,14 +218,26 @@
   </url>
   
   <url>
+    <loc>https://andyyin.github.io/tags/g1/</loc>
+    <lastmod>2019-10-06T00:00:00+00:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>https://andyyin.github.io/categories/g1/</loc>
+    <lastmod>2019-10-06T00:00:00+00:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
     <loc>https://andyyin.github.io/tags/gc/</loc>
-    <lastmod>2019-10-02T00:00:00+00:00</lastmod>
+    <lastmod>2019-10-06T00:00:00+00:00</lastmod>
     <priority>0</priority>
   </url>
   
   <url>
     <loc>https://andyyin.github.io/categories/gc/</loc>
-    <lastmod>2019-10-02T00:00:00+00:00</lastmod>
+    <lastmod>2019-10-06T00:00:00+00:00</lastmod>
     <priority>0</priority>
   </url>
   
@@ -211,6 +260,18 @@
   </url>
   
   <url>
+    <loc>https://andyyin.github.io/tags/incoming-references/</loc>
+    <lastmod>2019-10-25T00:00:00+00:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>https://andyyin.github.io/categories/incoming-references/</loc>
+    <lastmod>2019-10-25T00:00:00+00:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
     <loc>https://andyyin.github.io/itemized/</loc>
     <lastmod>2017-06-22T00:00:00+00:00</lastmod>
     <priority>0</priority>
@@ -218,13 +279,13 @@
   
   <url>
     <loc>https://andyyin.github.io/tags/jvm/</loc>
-    <lastmod>2019-10-02T00:00:00+00:00</lastmod>
+    <lastmod>2019-10-06T00:00:00+00:00</lastmod>
     <priority>0</priority>
   </url>
   
   <url>
     <loc>https://andyyin.github.io/categories/jvm/</loc>
-    <lastmod>2019-10-02T00:00:00+00:00</lastmod>
+    <lastmod>2019-10-06T00:00:00+00:00</lastmod>
     <priority>0</priority>
   </url>
   
@@ -247,6 +308,18 @@
   </url>
   
   <url>
+    <loc>https://andyyin.github.io/tags/outgoing-references/</loc>
+    <lastmod>2019-10-25T00:00:00+00:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>https://andyyin.github.io/categories/outgoing-references/</loc>
+    <lastmod>2019-10-25T00:00:00+00:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
     <loc>https://andyyin.github.io/tags/phantomreference/</loc>
     <lastmod>2018-02-02T00:00:00+00:00</lastmod>
     <priority>0</priority>
@@ -254,19 +327,43 @@
   
   <url>
     <loc>https://andyyin.github.io/tags/rsocket/</loc>
-    <lastmod>2019-10-04T00:00:00+00:00</lastmod>
+    <lastmod>2019-11-18T00:00:00+00:00</lastmod>
     <priority>0</priority>
   </url>
   
   <url>
     <loc>https://andyyin.github.io/categories/rsocket/</loc>
-    <lastmod>2019-10-04T00:00:00+00:00</lastmod>
+    <lastmod>2019-11-18T00:00:00+00:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>https://andyyin.github.io/tags/retained-heap/</loc>
+    <lastmod>2019-10-23T00:00:00+00:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>https://andyyin.github.io/categories/retained-heap/</loc>
+    <lastmod>2019-10-23T00:00:00+00:00</lastmod>
     <priority>0</priority>
   </url>
   
   <url>
     <loc>https://andyyin.github.io/tags/stw/</loc>
     <lastmod>2019-05-09T00:00:00+00:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>https://andyyin.github.io/tags/shallow-heap/</loc>
+    <lastmod>2019-10-23T00:00:00+00:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>https://andyyin.github.io/categories/shallow-heap/</loc>
+    <lastmod>2019-10-23T00:00:00+00:00</lastmod>
     <priority>0</priority>
   </url>
   
@@ -368,7 +465,7 @@
   
   <url>
     <loc>https://andyyin.github.io/</loc>
-    <lastmod>2019-10-04T00:00:00+00:00</lastmod>
+    <lastmod>2019-11-18T00:00:00+00:00</lastmod>
     <priority>0</priority>
   </url>
   

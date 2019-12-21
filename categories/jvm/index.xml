@@ -6,10 +6,23 @@
     <description>Recent content in JVM on 涤生的博客</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh</language>
-    <lastBuildDate>Wed, 02 Oct 2019 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Sun, 06 Oct 2019 00:00:00 +0000</lastBuildDate>
     
 	<atom:link href="https://andyyin.github.io/categories/jvm/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>[译]G1 GC：一个神奇的 JVM 参数，减少你的内存消耗</title>
+      <link>https://andyyin.github.io/blog/g1-gc%E4%B8%80%E4%B8%AA%E7%A5%9E%E5%A5%87%E7%9A%84-jvm-%E5%8F%82%E6%95%B0%E5%87%8F%E5%B0%91%E4%BD%A0%E7%9A%84%E5%86%85%E5%AD%98%E6%B6%88%E8%80%97/</link>
+      <pubDate>Sun, 06 Oct 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://andyyin.github.io/blog/g1-gc%E4%B8%80%E4%B8%AA%E7%A5%9E%E5%A5%87%E7%9A%84-jvm-%E5%8F%82%E6%95%B0%E5%87%8F%E5%B0%91%E4%BD%A0%E7%9A%84%E5%86%85%E5%AD%98%E6%B6%88%E8%80%97/</guid>
+      <description>现代 Java 应用程序有大量的字符串操作，例如，Web 服务 API 调用（即 JSON、REST、SOAP 等）、外部数据源调用（SQL、从 DB 返回的数据等）以及文本解析和文本创建等。因此，字符串对象很容易就占据了约至少 30％ 的内存。然而，这些 String 对象中的大多数都是重复的，这些字符串的重复浪费了大量内存。因此，优化重复字符串对象浪费的内存是 Java 非常受欢迎的功能之一。在 G1 中，Java 就对此功能做了支持。
+G1 做了什么？ G1 GC 算法运行时，它将从内存中删除垃圾对象。它还从内存中删除重复的字符串对象（字符串重复数据删除）。可以通过设置以下 JVM 参数来激活此功能：
+-XX:+UseG1GC -XX:+UseStringDeduplication   注意1：为了使用此功能， 需要在 Java 8 update 20 或更高版本上运行。 注意2：为了使用-XX:+UseStringDeduplication，您需要使用 G1 GC 算法。
+ 让我们看一个例子吧 选择这个简单的示例就是为了研究 JVM 如何处理重复的字符串。让我们通过这个简单的程序来验证 Java 的这个功能。
+ public class StringDeduplicationExample { public static List&amp;lt;String&amp;gt;myStrings = new ArrayList&amp;lt;&amp;gt;(); public static void main(String[] args) throws Exception { for (int counter = 0; counter &amp;lt; 200; ++counter) { for (int secondCounter = 0; secondCounter &amp;lt; 1000; ++secondCounter) { // Add it 1000 times.</description>
+    </item>
     
     <item>
       <title>[译]如何减少长时间的 GC 停顿？</title>
