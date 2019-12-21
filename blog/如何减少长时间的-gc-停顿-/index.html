@@ -1,0 +1,1185 @@
+<!DOCTYPE HTML>
+
+<html>
+    <head>
+        <script type="application/ld+json">
+    {
+        "@context" : "http://schema.org",
+        "@type" : "BlogPosting",
+        "mainEntityOfPage": {
+             "@type": "WebPage",
+             "@id": "https://andyyin.github.io"
+        },
+        "articleSection" : "blog",
+        "name" : "[译]如何减少长时间的 GC 停顿？",
+        "headline" : "[译]如何减少长时间的 GC 停顿？",
+        "description" : "垃圾回收是非常必要的，但是如果处理不好，它会成为性能杀手。采取以下步骤以确保 GC 停顿时间最少且最短。
+ 长时间的 GC 停顿对应用程序是不利的，它会影响服务的 SLA，进而导致糟糕的用户体验，并对核心应用程序的服务造成严重损害。因此，在本文中，我列出了导致长时间 GC 停顿的关键原因以及解决这些问题的可能的解决方案。
+1. 高速率创建对象 如果你的应用程序的对象创建率很高，那么为了跟上它，垃圾回收率也将会很高。高垃圾回收率也会增加 GC 停顿时间。因此，优化应用程序以创建更少的对象是减少长 GC 停顿的有效策略。这可能是一个耗时的工作，但百分百值得去做。为了优化应用程序中的对象创建速率，可以考虑先使用 Java 分析器来进行分析，例如 JProfiler，YourKit 或 JVisualVM，通过这些分析器可得出以下信息报告：
+ 创建了哪些对象？ 创建这些对象的速率是多少？ 它们在内存中占用多少空间？ 谁在创建了它们？  始终尝试去优化占用最大内存量的对象。
+提示: 如何计算对象创建速率
+将你的 GC 日志上传到通用 GC 日志分析器工具 GCeasy。该工具将报告对象创建率。在“对象统计信息”中将列出“平均创建率”。此项将报告对象创建率。力争使该值保持较低。请参见下图（摘自 GCeasy 生成的报告的目录），显示“平均创建速度”为 8.83 mb.sec。 2. 年轻代空间不足 当年轻代过小时，对象会过早地提升到老年代。从老年代收集垃圾比从年轻代收集垃圾要花费更多的时间。因此，增加年轻代的大小有可能减少长时间的 GC 停顿。可以通过设置两个 JVM 参数之一来增加年轻一代的大小 -Xmn ：指定年轻代的大小。 -XX:NewRatio ：指定年轻代相对于老年代的大小比例。例如，设置 -XX:NewRatio=2 表示年轻代与老年代之间的比率为 1:2。年轻代的大小将是整个堆的 1/3。因此，如果堆大小为 2 GB，则年轻代大小将为 2G / 3 = 667 MB。
+3. 选择 GC 算法 GC 算法对 GC 停顿时间有很大的影响。如果你是 GC 专家或打算成为一个（或你的团队中的有人是 GC 专家），你可以调整 GC 参数配置以获得最佳 GC 停顿时间。如果你没有大量的 GC 的专业知识，那么我建议使用 G1 GC 算法，因为它有自动调节的能力。在 G1 中，可以使用系统属性 -xx：MaxGCPauseMillis来设置 GC 预期最大停顿时间。例如：",
+        "inLanguage" : "zh",
+        "author" : "",
+        "creator" : "",
+        "publisher": "",
+        "accountablePerson" : "",
+        "copyrightHolder" : "",
+        "copyrightYear" : "2019",
+        "datePublished": "2019-10-02 00:00:00 &#43;0000 UTC",
+        "dateModified" : "2019-10-02 00:00:00 &#43;0000 UTC",
+        "url" : "https://andyyin.github.io/blog/%E5%A6%82%E4%BD%95%E5%87%8F%E5%B0%91%E9%95%BF%E6%97%B6%E9%97%B4%E7%9A%84-gc-%E5%81%9C%E9%A1%BF-/",
+        "wordCount" : "394",
+        "keywords" : [ "Java","GC","JVM","Blog" ]
+    }
+    </script>
+        
+            
+                <title>[译]如何减少长时间的 GC 停顿？</title>
+            
+        
+
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="generator" content="Hugo 0.54.0" />
+        
+
+
+        
+            <meta name="author" content="涤生">
+        
+        
+            
+                <meta name="description" content="涤生的博客，主要分享 Java、JVM、中间件、架构设计、性能优化、Linux 底层技术等，欢迎支持加关注。涤生，姓名殷琦，目前就职于某大型互联网公司基础架构部，主要负责微服务框架、服务治理、Serverless 相关工作。 《高可用可伸缩微服务架构：基于Dubbo、Spring Cloud和Service Mesh》的作者之一，《Knative 入门》图书翻译之一。">
+            
+        
+
+        <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="[译]如何减少长时间的 GC 停顿？"/>
+<meta name="twitter:description" content="垃圾回收是非常必要的，但是如果处理不好，它会成为性能杀手。采取以下步骤以确保 GC 停顿时间最少且最短。
+ 长时间的 GC 停顿对应用程序是不利的，它会影响服务的 SLA，进而导致糟糕的用户体验，并对核心应用程序的服务造成严重损害。因此，在本文中，我列出了导致长时间 GC 停顿的关键原因以及解决这些问题的可能的解决方案。
+1. 高速率创建对象 如果你的应用程序的对象创建率很高，那么为了跟上它，垃圾回收率也将会很高。高垃圾回收率也会增加 GC 停顿时间。因此，优化应用程序以创建更少的对象是减少长 GC 停顿的有效策略。这可能是一个耗时的工作，但百分百值得去做。为了优化应用程序中的对象创建速率，可以考虑先使用 Java 分析器来进行分析，例如 JProfiler，YourKit 或 JVisualVM，通过这些分析器可得出以下信息报告：
+ 创建了哪些对象？ 创建这些对象的速率是多少？ 它们在内存中占用多少空间？ 谁在创建了它们？  始终尝试去优化占用最大内存量的对象。
+提示: 如何计算对象创建速率
+将你的 GC 日志上传到通用 GC 日志分析器工具 GCeasy。该工具将报告对象创建率。在“对象统计信息”中将列出“平均创建率”。此项将报告对象创建率。力争使该值保持较低。请参见下图（摘自 GCeasy 生成的报告的目录），显示“平均创建速度”为 8.83 mb.sec。 2. 年轻代空间不足 当年轻代过小时，对象会过早地提升到老年代。从老年代收集垃圾比从年轻代收集垃圾要花费更多的时间。因此，增加年轻代的大小有可能减少长时间的 GC 停顿。可以通过设置两个 JVM 参数之一来增加年轻一代的大小 -Xmn ：指定年轻代的大小。 -XX:NewRatio ：指定年轻代相对于老年代的大小比例。例如，设置 -XX:NewRatio=2 表示年轻代与老年代之间的比率为 1:2。年轻代的大小将是整个堆的 1/3。因此，如果堆大小为 2 GB，则年轻代大小将为 2G / 3 = 667 MB。
+3. 选择 GC 算法 GC 算法对 GC 停顿时间有很大的影响。如果你是 GC 专家或打算成为一个（或你的团队中的有人是 GC 专家），你可以调整 GC 参数配置以获得最佳 GC 停顿时间。如果你没有大量的 GC 的专业知识，那么我建议使用 G1 GC 算法，因为它有自动调节的能力。在 G1 中，可以使用系统属性 -xx：MaxGCPauseMillis来设置 GC 预期最大停顿时间。例如："/>
+
+        <meta property="og:title" content="[译]如何减少长时间的 GC 停顿？" />
+<meta property="og:description" content="垃圾回收是非常必要的，但是如果处理不好，它会成为性能杀手。采取以下步骤以确保 GC 停顿时间最少且最短。
+ 长时间的 GC 停顿对应用程序是不利的，它会影响服务的 SLA，进而导致糟糕的用户体验，并对核心应用程序的服务造成严重损害。因此，在本文中，我列出了导致长时间 GC 停顿的关键原因以及解决这些问题的可能的解决方案。
+1. 高速率创建对象 如果你的应用程序的对象创建率很高，那么为了跟上它，垃圾回收率也将会很高。高垃圾回收率也会增加 GC 停顿时间。因此，优化应用程序以创建更少的对象是减少长 GC 停顿的有效策略。这可能是一个耗时的工作，但百分百值得去做。为了优化应用程序中的对象创建速率，可以考虑先使用 Java 分析器来进行分析，例如 JProfiler，YourKit 或 JVisualVM，通过这些分析器可得出以下信息报告：
+ 创建了哪些对象？ 创建这些对象的速率是多少？ 它们在内存中占用多少空间？ 谁在创建了它们？  始终尝试去优化占用最大内存量的对象。
+提示: 如何计算对象创建速率
+将你的 GC 日志上传到通用 GC 日志分析器工具 GCeasy。该工具将报告对象创建率。在“对象统计信息”中将列出“平均创建率”。此项将报告对象创建率。力争使该值保持较低。请参见下图（摘自 GCeasy 生成的报告的目录），显示“平均创建速度”为 8.83 mb.sec。 2. 年轻代空间不足 当年轻代过小时，对象会过早地提升到老年代。从老年代收集垃圾比从年轻代收集垃圾要花费更多的时间。因此，增加年轻代的大小有可能减少长时间的 GC 停顿。可以通过设置两个 JVM 参数之一来增加年轻一代的大小 -Xmn ：指定年轻代的大小。 -XX:NewRatio ：指定年轻代相对于老年代的大小比例。例如，设置 -XX:NewRatio=2 表示年轻代与老年代之间的比率为 1:2。年轻代的大小将是整个堆的 1/3。因此，如果堆大小为 2 GB，则年轻代大小将为 2G / 3 = 667 MB。
+3. 选择 GC 算法 GC 算法对 GC 停顿时间有很大的影响。如果你是 GC 专家或打算成为一个（或你的团队中的有人是 GC 专家），你可以调整 GC 参数配置以获得最佳 GC 停顿时间。如果你没有大量的 GC 的专业知识，那么我建议使用 G1 GC 算法，因为它有自动调节的能力。在 G1 中，可以使用系统属性 -xx：MaxGCPauseMillis来设置 GC 预期最大停顿时间。例如：" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://andyyin.github.io/blog/%E5%A6%82%E4%BD%95%E5%87%8F%E5%B0%91%E9%95%BF%E6%97%B6%E9%97%B4%E7%9A%84-gc-%E5%81%9C%E9%A1%BF-/" />
+<meta property="article:published_time" content="2019-10-02T00:00:00&#43;00:00"/>
+<meta property="article:modified_time" content="2019-10-02T00:00:00&#43;00:00"/>
+
+        <meta property="og:image" content="https://andyyin.github.io/images/logo.png">
+        <meta property="og:image:type" content="image/png">
+        <meta property="og:image:width" content="512">
+        <meta property="og:image:height" content="512">
+        
+<meta itemprop="name" content="[译]如何减少长时间的 GC 停顿？">
+<meta itemprop="description" content="垃圾回收是非常必要的，但是如果处理不好，它会成为性能杀手。采取以下步骤以确保 GC 停顿时间最少且最短。
+ 长时间的 GC 停顿对应用程序是不利的，它会影响服务的 SLA，进而导致糟糕的用户体验，并对核心应用程序的服务造成严重损害。因此，在本文中，我列出了导致长时间 GC 停顿的关键原因以及解决这些问题的可能的解决方案。
+1. 高速率创建对象 如果你的应用程序的对象创建率很高，那么为了跟上它，垃圾回收率也将会很高。高垃圾回收率也会增加 GC 停顿时间。因此，优化应用程序以创建更少的对象是减少长 GC 停顿的有效策略。这可能是一个耗时的工作，但百分百值得去做。为了优化应用程序中的对象创建速率，可以考虑先使用 Java 分析器来进行分析，例如 JProfiler，YourKit 或 JVisualVM，通过这些分析器可得出以下信息报告：
+ 创建了哪些对象？ 创建这些对象的速率是多少？ 它们在内存中占用多少空间？ 谁在创建了它们？  始终尝试去优化占用最大内存量的对象。
+提示: 如何计算对象创建速率
+将你的 GC 日志上传到通用 GC 日志分析器工具 GCeasy。该工具将报告对象创建率。在“对象统计信息”中将列出“平均创建率”。此项将报告对象创建率。力争使该值保持较低。请参见下图（摘自 GCeasy 生成的报告的目录），显示“平均创建速度”为 8.83 mb.sec。 2. 年轻代空间不足 当年轻代过小时，对象会过早地提升到老年代。从老年代收集垃圾比从年轻代收集垃圾要花费更多的时间。因此，增加年轻代的大小有可能减少长时间的 GC 停顿。可以通过设置两个 JVM 参数之一来增加年轻一代的大小 -Xmn ：指定年轻代的大小。 -XX:NewRatio ：指定年轻代相对于老年代的大小比例。例如，设置 -XX:NewRatio=2 表示年轻代与老年代之间的比率为 1:2。年轻代的大小将是整个堆的 1/3。因此，如果堆大小为 2 GB，则年轻代大小将为 2G / 3 = 667 MB。
+3. 选择 GC 算法 GC 算法对 GC 停顿时间有很大的影响。如果你是 GC 专家或打算成为一个（或你的团队中的有人是 GC 专家），你可以调整 GC 参数配置以获得最佳 GC 停顿时间。如果你没有大量的 GC 的专业知识，那么我建议使用 G1 GC 算法，因为它有自动调节的能力。在 G1 中，可以使用系统属性 -xx：MaxGCPauseMillis来设置 GC 预期最大停顿时间。例如：">
+
+
+<meta itemprop="datePublished" content="2019-10-02T00:00:00&#43;00:00" />
+<meta itemprop="dateModified" content="2019-10-02T00:00:00&#43;00:00" />
+<meta itemprop="wordCount" content="394">
+
+
+
+<meta itemprop="keywords" content="Java,GC,JVM," />
+
+        
+
+        
+            
+        
+
+        
+        
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/atom-one-light.min.css">
+            <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway:400,800,900|Source+Sans+Pro:400,700">
+            <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.1.25/jquery.fancybox.min.css">
+            <link rel="stylesheet" href="https://andyyin.github.io/css/main.css">
+            <link rel="stylesheet" href="https://andyyin.github.io/css/add-on.css">
+            <link rel="stylesheet" href="https://andyyin.github.io/css/academicons.min.css">
+        
+
+        
+            
+                
+            
+        
+
+
+  
+    
+    <link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+  
+
+
+      
+    </head>
+    <body>
+
+      
+      <div id="wrapper">
+
+    
+    
+<header id="header">
+    
+      <h1><a href="https://andyyin.github.io/">涤生|个人博客</a></h1>
+    
+
+    <nav class="links">
+        <ul>
+            
+                <li>
+                    <a href="https://andyyin.github.io/">
+                            <i class="fa fa-home">&nbsp;</i>主页
+                    </a>
+                </li>
+            
+                <li>
+                    <a href="https://andyyin.github.io/blog/">
+                            <i class="fa fa-newspaper-o">&nbsp;</i>博客
+                    </a>
+                </li>
+            
+                <li>
+                    <a href="https://andyyin.github.io/categories/">
+                            <i class="fa fa-sitemap">&nbsp;</i>分类
+                    </a>
+                </li>
+            
+                <li>
+                    <a href="https://andyyin.github.io/about/">
+                            <i class="fa fa-id-card-o">&nbsp;</i>关于
+                    </a>
+                </li>
+            
+                <li>
+                    <a href="https://andyyin.github.io/links/">
+                            <i class="fa fa-link">&nbsp;</i>友链
+                    </a>
+                </li>
+            
+        </ul>
+    </nav>
+    <nav class="main">
+        <ul>
+            
+            <li id="share-nav" class="share-menu" style="display:none;">
+                <a class="fa-share-alt" href="#share-menu">Share</a>
+            </li>
+            
+            <li class="search">
+                <a class="fa-search" href="#search">Search</a>
+                <form id="search" method="get" action="//google.com/search">
+                    <input type="text" name="q" placeholder="Search" />
+                    <input type="hidden" name="as_sitesearch" value="https://andyyin.github.io">
+                </form>
+            </li>
+            <li class="menu">
+                <a class="fa-bars" href="#menu">Menu</a>
+            </li>
+        </ul>
+    </nav>
+</header>
+
+
+<section id="menu">
+
+    
+        <section>
+            <form class="search" method="get" action="//google.com/search">
+                <input type="text" name="q" placeholder="Search" />
+                <input type="hidden" name="as_sitesearch" value="https://andyyin.github.io">
+            </form>
+        </section>
+
+    
+        <section>
+            <ul class="links">
+                
+                    <li>
+                        <a href="https://andyyin.github.io/">
+                            <h3>
+                                <i class="fa fa-home">&nbsp;</i>主页
+                            </h3>
+                        </a>
+                    </li>
+                
+                    <li>
+                        <a href="https://andyyin.github.io/blog/">
+                            <h3>
+                                <i class="fa fa-newspaper-o">&nbsp;</i>博客
+                            </h3>
+                        </a>
+                    </li>
+                
+                    <li>
+                        <a href="https://andyyin.github.io/categories/">
+                            <h3>
+                                <i class="fa fa-sitemap">&nbsp;</i>分类
+                            </h3>
+                        </a>
+                    </li>
+                
+                    <li>
+                        <a href="https://andyyin.github.io/about/">
+                            <h3>
+                                <i class="fa fa-id-card-o">&nbsp;</i>关于
+                            </h3>
+                        </a>
+                    </li>
+                
+                    <li>
+                        <a href="https://andyyin.github.io/links/">
+                            <h3>
+                                <i class="fa fa-link">&nbsp;</i>友链
+                            </h3>
+                        </a>
+                    </li>
+                
+            </ul>
+        </section>
+
+    
+        <section class="recent-posts">
+            <div class="mini-posts">
+                <header>
+                    <h3>Recent Posts</h3>
+                </header>
+                
+
+                
+                    
+                
+
+                
+                        <article class="mini-post">
+                            <header>
+                                <h3><a href="https://andyyin.github.io/blog/%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E9%80%9A%E8%AE%AF-part-1/">[译]用 RSocket 解决响应式服务之间的通讯-Part 1</a></h3>
+                                
+                                <time class="published" datetime=
+                                    '2019-10-04'>
+                                    October 4, 2019</time>
+                            </header>
+                            
+
+                        </article>
+                
+                        <article class="mini-post">
+                            <header>
+                                <h3><a href="https://andyyin.github.io/blog/%E5%A6%82%E4%BD%95%E5%87%8F%E5%B0%91%E9%95%BF%E6%97%B6%E9%97%B4%E7%9A%84-gc-%E5%81%9C%E9%A1%BF-/">[译]如何减少长时间的 GC 停顿？</a></h3>
+                                
+                                <time class="published" datetime=
+                                    '2019-10-02'>
+                                    October 2, 2019</time>
+                            </header>
+                            
+
+                        </article>
+                
+                        <article class="mini-post">
+                            <header>
+                                <h3><a href="https://andyyin.github.io/blog/%E6%9C%8D%E5%8A%A1%E5%88%9A%E5%90%AF%E5%8A%A8%E5%B0%B1-full-gc%E8%A6%81%E9%97%B9%E5%93%AA%E6%A0%B7/">服务刚启动就 Full GC，要闹哪样？</a></h3>
+                                
+                                <time class="published" datetime=
+                                    '2019-07-23'>
+                                    July 23, 2019</time>
+                            </header>
+                            
+
+                        </article>
+                
+                        <article class="mini-post">
+                            <header>
+                                <h3><a href="https://andyyin.github.io/blog/%E7%AE%80%E5%8D%95%E7%9A%84-http-%E8%B0%83%E7%94%A8%E4%B8%BA%E4%BB%80%E4%B9%88%E6%97%B6%E5%BB%B6%E8%BF%99%E4%B9%88%E5%A4%A7/">简单的 HTTP 调用，为什么时延这么大？</a></h3>
+                                
+                                <time class="published" datetime=
+                                    '2019-07-14'>
+                                    July 14, 2019</time>
+                            </header>
+                            
+
+                        </article>
+                
+                        <article class="mini-post">
+                            <header>
+                                <h3><a href="https://andyyin.github.io/blog/jvm-%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB%E4%B9%8B-cms-%E4%BD%95%E6%97%B6%E4%BC%9A%E8%BF%9B%E8%A1%8C-full-gc/">JVM 源码解读之 CMS 何时会进行 Full GC</a></h3>
+                                
+                                <time class="published" datetime=
+                                    '2019-06-15'>
+                                    June 15, 2019</time>
+                            </header>
+                            
+
+                        </article>
+                
+
+                
+                    <a href=
+                        
+                            /blog/
+                        
+                        class="button">更多</a>
+                
+            </div>
+        </section>
+
+    
+        
+</section>
+
+    <section id="share-menu">
+    <section id="social-share-nav">
+        <ul class="links">
+            <header>
+                <h3>Share this post <i class="fa fa-smile-o"></i></h3>
+            </header>
+            
+
+
+
+<li>
+  <a href="//twitter.com/share?url=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E5%25A6%2582%25E4%25BD%2595%25E5%2587%258F%25E5%25B0%2591%25E9%2595%25BF%25E6%2597%25B6%25E9%2597%25B4%25E7%259A%2584-gc-%25E5%2581%259C%25E9%25A1%25BF-%2f&amp;text=%5b%e8%af%91%5d%e5%a6%82%e4%bd%95%e5%87%8f%e5%b0%91%e9%95%bf%e6%97%b6%e9%97%b4%e7%9a%84%20GC%20%e5%81%9c%e9%a1%bf%ef%bc%9f&amp;via=" target="_blank" class="share-btn twitter">
+    <i class="fa fa-twitter"></i>
+    <p>Twitter</p>
+    </a>
+</li>
+
+
+
+
+<li>
+  <a href="//plus.google.com/share?url=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E5%25A6%2582%25E4%25BD%2595%25E5%2587%258F%25E5%25B0%2591%25E9%2595%25BF%25E6%2597%25B6%25E9%2597%25B4%25E7%259A%2584-gc-%25E5%2581%259C%25E9%25A1%25BF-%2f" target="_blank" class="share-btn google-plus">
+    <i class="fa fa-google-plus"></i>
+    <p>Google+</p>
+  </a>
+</li>
+
+
+
+
+
+<li>
+  <a href="//www.facebook.com/sharer/sharer.php?u=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E5%25A6%2582%25E4%25BD%2595%25E5%2587%258F%25E5%25B0%2591%25E9%2595%25BF%25E6%2597%25B6%25E9%2597%25B4%25E7%259A%2584-gc-%25E5%2581%259C%25E9%25A1%25BF-%2f" target="_blank" class="share-btn facebook">
+    <i class="fa fa-facebook"></i>
+    <p>Facebook</p>
+    </a>
+</li>
+
+
+
+
+<li>
+  <a href="//reddit.com/submit?url=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E5%25A6%2582%25E4%25BD%2595%25E5%2587%258F%25E5%25B0%2591%25E9%2595%25BF%25E6%2597%25B6%25E9%2597%25B4%25E7%259A%2584-gc-%25E5%2581%259C%25E9%25A1%25BF-%2f&amp;title=%5b%e8%af%91%5d%e5%a6%82%e4%bd%95%e5%87%8f%e5%b0%91%e9%95%bf%e6%97%b6%e9%97%b4%e7%9a%84%20GC%20%e5%81%9c%e9%a1%bf%ef%bc%9f" target="_blank" class="share-btn reddit">
+    <i class="fa fa-reddit-alien"></i>
+    <p>Reddit</p>
+  </a>
+</li>
+
+
+
+
+<li>
+  <a href="//www.linkedin.com/shareArticle?url=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E5%25A6%2582%25E4%25BD%2595%25E5%2587%258F%25E5%25B0%2591%25E9%2595%25BF%25E6%2597%25B6%25E9%2597%25B4%25E7%259A%2584-gc-%25E5%2581%259C%25E9%25A1%25BF-%2f&amp;title=%5b%e8%af%91%5d%e5%a6%82%e4%bd%95%e5%87%8f%e5%b0%91%e9%95%bf%e6%97%b6%e9%97%b4%e7%9a%84%20GC%20%e5%81%9c%e9%a1%bf%ef%bc%9f" target="_blank" class="share-btn linkedin">
+      <i class="fa fa-linkedin"></i>
+      <p>LinkedIn</p>
+    </a>
+</li>
+
+
+
+
+<li>
+  <a href="//www.stumbleupon.com/submit?url=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E5%25A6%2582%25E4%25BD%2595%25E5%2587%258F%25E5%25B0%2591%25E9%2595%25BF%25E6%2597%25B6%25E9%2597%25B4%25E7%259A%2584-gc-%25E5%2581%259C%25E9%25A1%25BF-%2f&amp;title=%5b%e8%af%91%5d%e5%a6%82%e4%bd%95%e5%87%8f%e5%b0%91%e9%95%bf%e6%97%b6%e9%97%b4%e7%9a%84%20GC%20%e5%81%9c%e9%a1%bf%ef%bc%9f" target="_blank" class="share-btn stumbleupon">
+    <i class="fa fa-stumbleupon"></i>
+    <p>StumbleUpon</p>
+  </a>
+</li>
+
+
+
+
+<li>
+  <a href="//www.pinterest.com/pin/create/button/?url=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E5%25A6%2582%25E4%25BD%2595%25E5%2587%258F%25E5%25B0%2591%25E9%2595%25BF%25E6%2597%25B6%25E9%2597%25B4%25E7%259A%2584-gc-%25E5%2581%259C%25E9%25A1%25BF-%2f&amp;description=%5b%e8%af%91%5d%e5%a6%82%e4%bd%95%e5%87%8f%e5%b0%91%e9%95%bf%e6%97%b6%e9%97%b4%e7%9a%84%20GC%20%e5%81%9c%e9%a1%bf%ef%bc%9f" target="_blank" class="share-btn pinterest">
+    <i class="fa fa-pinterest-p"></i>
+    <p>Pinterest</p>
+  </a>
+</li>
+
+
+
+
+<li>
+  <a href="mailto:?subject=Check out this post by %e6%b6%a4%e7%94%9f&amp;body=https%3a%2f%2fandyyin.github.io%2fblog%2f%25E5%25A6%2582%25E4%25BD%2595%25E5%2587%258F%25E5%25B0%2591%25E9%2595%25BF%25E6%2597%25B6%25E9%2597%25B4%25E7%259A%2584-gc-%25E5%2581%259C%25E9%25A1%25BF-%2f" target="_blank" class="share-btn email">
+    <i class="fa fa-envelope"></i>
+    <p>Email</p>
+  </a>
+</li>
+
+
+        </ul>
+    </section>
+</section>
+
+    
+    <div id="main">
+        
+        
+        <article class="post">
+  <header>
+    <div class="title">
+        
+            <h1><a href="https://andyyin.github.io/blog/%E5%A6%82%E4%BD%95%E5%87%8F%E5%B0%91%E9%95%BF%E6%97%B6%E9%97%B4%E7%9A%84-gc-%E5%81%9C%E9%A1%BF-/">[译]如何减少长时间的 GC 停顿？</a></h1>
+            
+        
+        
+    </div>
+    <div class="meta">
+        
+
+        <time class="published"
+            datetime='2019-10-02'>
+            2019-10-02</time>
+        <span class="author">涤生</span>
+        
+            <p>2 分钟阅读</p>
+        
+        
+    </div>
+</header>
+
+
+  
+
+  
+
+  <div id="content">
+    
+
+<blockquote>
+<p>垃圾回收是非常必要的，但是如果处理不好，它会成为性能杀手。采取以下步骤以确保 GC 停顿时间最少且最短。</p>
+</blockquote>
+
+<p>长时间的 GC 停顿对应用程序是不利的，它会影响服务的 SLA，进而导致糟糕的用户体验，并对核心应用程序的服务造成严重损害。因此，在本文中，我列出了导致长时间 GC 停顿的关键原因以及解决这些问题的可能的解决方案。</p>
+
+<h2 id="1-高速率创建对象">1. 高速率创建对象</h2>
+
+<p>如果你的应用程序的对象创建率很高，那么为了跟上它，垃圾回收率也将会很高。高垃圾回收率也会增加 GC 停顿时间。因此，优化应用程序以创建更少的对象是减少长 GC 停顿的有效策略。这可能是一个耗时的工作，但百分百值得去做。为了优化应用程序中的对象创建速率，可以考虑先使用 Java 分析器来进行分析，例如 <a href="https://www.ej-technologies.com/products/jprofiler/overview.html">JProfiler</a>，<a href="https%EF%BC%9A%20//yourkit.com/">YourKit</a> 或 JVisualVM，通过这些分析器可得出以下信息报告：</p>
+
+<ul>
+<li>创建了哪些对象？</li>
+<li>创建这些对象的速率是多少？</li>
+<li>它们在内存中占用多少空间？</li>
+<li>谁在创建了它们？</li>
+</ul>
+
+<p>始终尝试去优化占用最大内存量的对象。</p>
+
+<p><strong>提示: 如何计算对象创建速率</strong></p>
+
+<p>将你的 GC 日志上传到通用 GC 日志分析器工具 <a href="http://gceasy.io/">GCeasy</a>。该工具将报告对象创建率。在“对象统计信息”中将列出“平均创建率”。此项将报告对象创建率。力争使该值保持较低。请参见下图（摘自 <a href="http://gceasy.io/">GCeasy</a> 生成的报告的目录），显示“平均创建速度”为 <strong>8.83 mb.sec</strong>。
+<img src="https://andyyin.github.io/img/2019/10/stop/objectstats.png" alt="对象统计信息" /></p>
+
+<h2 id="2-年轻代空间不足">2. 年轻代空间不足</h2>
+
+<p>当年轻代过小时，对象会过早地提升到老年代。从老年代收集垃圾比从年轻代收集垃圾要花费更多的时间。因此，增加年轻代的大小有可能减少长时间的 GC 停顿。可以通过设置两个 JVM 参数之一来增加年轻一代的大小  <strong>-Xmn</strong> ：指定年轻代的大小。  <strong>-XX:NewRatio</strong> ：指定年轻代相对于老年代的大小比例。例如，设置 -XX:NewRatio=2 表示年轻代与老年代之间的比率为 1:2。年轻代的大小将是整个堆的 1/3。因此，如果堆大小为 2 GB，则年轻代大小将为 2G / 3 = 667 MB。</p>
+
+<h2 id="3-选择-gc-算法">3. 选择 GC 算法</h2>
+
+<p>GC 算法对 GC 停顿时间有很大的影响。如果你是 GC 专家或打算成为一个（或你的团队中的有人是 GC 专家），你可以调整 GC 参数配置以获得最佳 GC 停顿时间。如果你没有大量的 GC 的专业知识，那么我建议使用 G1 GC 算法，因为它有<strong>自动调节</strong>的能力。在 G1 中，可以使用系统属性 <code>-xx：MaxGCPauseMillis</code>来设置 GC 预期最大停顿时间。例如：</p>
+
+<pre><code> -XX:MaxGCPauseMillis=200
+</code></pre>
+
+<p>按照上面的例子，最大 GC 停顿时间设置为 200 毫秒。这是一个软目标，JVM 将尽力实现它。</p>
+
+<h2 id="4-进程使用了-swap">4. 进程使用了 Swap</h2>
+
+<p>有时由于物理内存不足（RAM），操作系统可能会将应用程序暂时不用的数据从内存交换出去。交换动作是非常昂贵的，因为它需要访问磁盘，这比物理内存访问要慢得多。</p>
+
+<p>依我之见，在生产环境中，任何一个重要的应用程序都不应该交换。当进程使用了 Swap 时，GC 将需要很长的时间才能完成。</p>
+
+<p>下面的脚本来自 <a href="http://stackoverflow.com/questions/479953/how-to-find-out-which-processes-are-swapping-in-linux">StackOverflow</a> （感谢作者），当执行脚本时，将显示所有正在发生交换的进程。请确保你的应用程序进程没有使用 Swap。</p>
+
+<pre><code>#!/bin/bash 
+# Get current swap usage for all running processes
+# Erik Ljungstrom 27/05/2011
+# Modified by Mikko Rantalainen 2012-08-09
+# Pipe the output to &quot;sort -nk3&quot; to get sorted output
+# Modified by Marc Methot 2014-09-18
+# removed the need for sudo
+SUM=0
+OVERALL=0
+for DIR in `find /proc/ -maxdepth 1 -type d -regex &quot;^/proc/[0-9]+&quot;`
+do
+ PID=`echo $DIR | cut -d / -f 3`
+ PROGNAME=`ps -p $PID -o comm --no-headers`
+ for SWAP in `grep VmSwap $DIR/status 2&gt;/dev/null | awk '{ print $2 }'`
+ do
+ let SUM=$SUM+$SWAP
+ done
+ if (( $SUM &gt; 0 )); then
+ echo &quot;PID=$PID swapped $SUM KB ($PROGNAME)&quot;
+ fi
+ let OVERALL=$OVERALL+$SUM
+ SUM=0
+done
+echo &quot;Overall swap used: $OVERALL KB&quot;&lt;/pre&gt;
+</code></pre>
+
+<p>如果发现进程使用了 Swap 分区，则可以执行下列操作之一：</p>
+
+<ul>
+<li>分配更多的物理内存。</li>
+<li>减少在服务器上运行的进程的数量，以便它可以释放内存（RAM）。</li>
+<li>减少应用程序的堆大小（我不建议这么做，因为它会导致其他副作用。不过，它可能会解决你的问题）。</li>
+</ul>
+
+<h2 id="5-调整-gc-线程数">5. 调整 GC 线程数</h2>
+
+<p>对于 GC 日志中报告的每个 GC 事件，会打印用户、系统和实际执行时间。例如：</p>
+
+<pre><code>[Times: user=25.56 sys=0.35, real=20.48 secs]
+</code></pre>
+
+<p>要了解这些时间之间的区别，请<a href="https://blog.gceasy.io/2016/04/06/gc-logging-user-sys-real-which-time-to-use/">阅读本文</a>（我强烈建议在继续阅读本节之前阅读该篇文章）。如果在 GC 事件中，您始终注意到 <code>real</code> 时间并不显著小于 <code>user</code> 时间，那么它可能指示没有足够的 GC 线程。考虑增加 GC 线程数。假设 <code>user</code> 时间为 25s，并且将 GC 线程计数配置为 5，那么 <code>real</code> 应该接近 5s（因为 25s/5＝5s）。</p>
+
+<p>警告：添加太多的 GC 线程将消耗大量 CPU，从而占用应用程序的资源。因此，在增加 GC 线程数之前，需要进行充分的测试。</p>
+
+<h2 id="6-后台-i-o-活动">6. 后台 I/O 活动</h2>
+
+<p>如果有大量的文件系统 I/O 活动（即发生大量的读写操作），也可能导致长时间的 GC 停顿。此繁重的文件系统 I/O 活动可能不是由应用程序引起的。可能是由于运行在同一服务器上的另一进程造成的。但它仍然会导致应用程序遭受长时间的 GC 停顿。这里是一篇 <a href="https://engineering.linkedin.com/blog/2016/02/eliminating-large-jvm-gc-pauses-caused-by-background-io-traffic">来自 LinkedIn工程师精彩文章</a>，详细介绍了这个问题。</p>
+
+<p>当有严重的 I/O 活动时，你会注意到 <code>real</code> 的时间明显高于 <code>user</code> 的时间。例如：</p>
+
+<pre><code>[Times: user=0.20 sys=0.01, real=18.45 secs]
+</code></pre>
+
+<p>当这种情况发生时，以下是一些可能的解决方案：</p>
+
+<ul>
+<li>如果高 I/O 活动是由应用程序引起的，那么优化它。</li>
+<li>消除在服务器上导致高 I/O 活动的进程。</li>
+<li>将应用程序移动到 I/O 活动较少的其他服务器。</li>
+</ul>
+
+<p><strong>提示: 如何监视 I/O 活动</strong></p>
+
+<p>在<em>类 Unix系统</em> 中，你可以使用的 <code>SAR</code> 命令（系统活动情况报告）监视 I/O 活动。例如：</p>
+
+<pre><code>sar -d -p 1
+</code></pre>
+
+<p>上面的命令每 1 秒会报告一次读取/秒和写入/秒的统计数据。有关 <code>SAR</code> 命令的更多细节，请参阅<a href="http://www.linuxtechi.com/generate-cpu-memory-io-report-sar-command/">本教程</a>.。</p>
+
+<h2 id="7-system-gc-调用">7. System.gc() 调用</h2>
+
+<p>当调用 <a href="https://docs.oracle.com/javase/7/docs/api/java/lang/System.html#gc()">System.gc()</a> or <a href="http://docs.oracle.com/javase/6/docs/api/java/lang/Runtime.html#gc()">Runtime.getRuntime().gc()</a> 方法时，它将导致 stop-the-world 的 Full GC。在 Full GC 期间，整个 JVM 被冻结（即在此期间不会执行任何用户活动）。System.gc() 调用一般来源于以下情况：</p>
+
+<ol>
+<li>开发人员可能会显式地调用 System.gc() 方法。</li>
+<li>使用的第三方库、框架，有时甚至是应用程序服务器。其中任何一个都可能调用 System.gc() 方法。</li>
+<li>还可以通过使用 JMX 从外部工具（如 VisualVM）触发。</li>
+<li>如果你的应用程序正在使用 RMI，那么 RMI 会定期调用 System.gc() 。可以使用以下系统属性配置此调用间隔：
+<code>
+-Dsun.rmi.dgc.server.gcInterval=n
+-Dsun.rmi.dgc.client.gcInterval=n
+</code>
+评估是否显式调用 System.gc() 是绝对必要的。如果不需要，请把它删掉。另一方面，可以通过传递 JVM 参数来强制禁用 System.gc() 调用 <strong>-XX:+DisableExplicitGC</strong>。有关 System.gc() 问题和解决方案的完整详细信息<a href="https://blog.gceasy.io/2016/11/22/system-gc/">请参阅本文</a>。</li>
+</ol>
+
+<p><strong>提示： 如何知道是否显示调用了 System.gc()</strong></p>
+
+<p>将 GC 日志上传到通用 GC 日志分析器工具<a href="http://gceasy.io/">GCeasy</a>。此工具有一个名为<code>GC Causes</code>的部分。如果由于System.gc()调用而触发 GC 活动，则此部分将报告该情况。请看下图（摘自 <a href="http://gceasy.io/">GCeasy</a> 生成的报告目录），显示了 System.gc() 在这个应用程序的生命周期中被做了四次。
+<img src="https://andyyin.github.io/img/2019/10/stop/gccauses.png" alt="GC Causes" /></p>
+
+<p><strong>警告</strong>：所有上述战略只有经过彻底的测试和分析才能推广到生产。所有策略可能不一定适用于你的应用程序。如果不当使用可能会导致负面的结果。</p>
+
+<p>作者：Ram Lakshmanan，原文：<a href="https://dzone.com/articles/how-to-reduce-long-gc-pause">How to Reduce Long GC Pauses</a></p>
+
+<hr />
+
+<blockquote>
+<p>涤生的博客。</p>
+
+<p>转载请注明原创出处，谢谢！</p>
+
+<p>欢迎关注我的微信公众号：「涤生的博客」，获取更多技术分享。</p>
+</blockquote>
+
+<p><img src="https://andyyin.github.io/img/main/officialAccount.jpg" alt="涤生-微信公共号" /></p>
+
+  </div>
+
+  <footer>
+    <ul class="stats">
+  <li class="categories">
+    <ul>
+        
+            
+            
+                <i class="fa fa-folder"></i>
+                
+                
+                <li><a class="article-category-link" href="https://andyyin.github.io/categories/java">Java</a></li>
+                
+                
+                <li><a class="article-category-link" href="https://andyyin.github.io/categories/gc">GC</a></li>
+                
+                
+                <li><a class="article-category-link" href="https://andyyin.github.io/categories/jvm">JVM</a></li>
+                
+            
+        
+    </ul>
+  </li>
+  <li class="tags">
+    <ul>
+        
+            
+            
+                <i class="fa fa-tags"></i>
+                
+                
+                <li><a class="article-category-link" href="https://andyyin.github.io/tags/java">Java</a></li>
+                
+                
+                <li><a class="article-category-link" href="https://andyyin.github.io/tags/gc">GC</a></li>
+                
+                
+                <li><a class="article-category-link" href="https://andyyin.github.io/tags/jvm">JVM</a></li>
+                
+            
+        
+    </ul>
+  </li>
+</ul>
+
+  </footer>
+
+</article>
+
+<ul class="actions pagination">
+    
+        <li><a href="https://andyyin.github.io/blog/%E6%9C%8D%E5%8A%A1%E5%88%9A%E5%90%AF%E5%8A%A8%E5%B0%B1-full-gc%E8%A6%81%E9%97%B9%E5%93%AA%E6%A0%B7/"
+                class="button big previous">服务刚启动就 Full GC，要闹哪样？</a></li>
+    
+
+    
+        <li><a href="https://andyyin.github.io/blog/%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E9%80%9A%E8%AE%AF-part-1/"
+                class="button big next">[译]用 RSocket 解决响应式服务之间的通讯-Part 1</a></li>
+    
+</ul>
+
+
+    </div>
+    
+<section id="sidebar">
+
+  
+  <section id="intro">
+    
+    
+      
+        <a href='https://andyyin.github.io/'><img src="https://andyyin.github.io/img/main/disheng.jpg" class="intro-circle" width="100" alt="涤生的博客" /></a>
+      
+    
+    
+      <header>
+        <h2>涤生的博客</h2>
+        <p>主要分享 Java、JVM、中间件、架构设计、性能优化、Linux 底层技术等，欢迎支持加关注。</p>
+      </header>
+    
+    
+      <ul class="icons">
+        
+          
+    <li><a href="https://andyyin.github.io/index.xml" type="application/rss+xml" target="_blank" title="RSS" class="fa fa-rss"></a></li>
+
+
+        
+        
+  <li><a href="//github.com/andyyin" target="_blank" title="GitHub" class="fa fa-github"></a></li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <li><a href="https://andyyin.github.io/img/main/wechat.jpeg" target="_blank" title="WeChat" class="fa fa-weixin"></a></li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <li><a href="mailto:yyqqyinqi568@126.com" title="Email" class="fa fa-envelope"></a></li>
+
+
+      </ul>
+    
+  </section>
+
+  
+  <section class="recent-posts">
+    <div class="mini-posts">
+      <header>
+        <h3>最新文章</h3>
+      </header>
+      <div class="posts-container">
+        
+
+        
+          
+        
+
+        
+          <article class="mini-post">
+            <header>
+              <h3>
+                <a href="https://andyyin.github.io/blog/%E7%94%A8-rsocket-%E8%A7%A3%E5%86%B3%E5%93%8D%E5%BA%94%E5%BC%8F%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%97%B4%E7%9A%84%E9%80%9A%E8%AE%AF-part-1/">[译]用 RSocket 解决响应式服务之间的通讯-Part 1</a>
+              </h3>
+              
+              <time class="published" datetime='2019-10-04'>
+                2019-10-04
+              </time>
+            </header>
+            
+
+          </article>
+        
+          <article class="mini-post">
+            <header>
+              <h3>
+                <a href="https://andyyin.github.io/blog/%E5%A6%82%E4%BD%95%E5%87%8F%E5%B0%91%E9%95%BF%E6%97%B6%E9%97%B4%E7%9A%84-gc-%E5%81%9C%E9%A1%BF-/">[译]如何减少长时间的 GC 停顿？</a>
+              </h3>
+              
+              <time class="published" datetime='2019-10-02'>
+                2019-10-02
+              </time>
+            </header>
+            
+
+          </article>
+        
+          <article class="mini-post">
+            <header>
+              <h3>
+                <a href="https://andyyin.github.io/blog/%E6%9C%8D%E5%8A%A1%E5%88%9A%E5%90%AF%E5%8A%A8%E5%B0%B1-full-gc%E8%A6%81%E9%97%B9%E5%93%AA%E6%A0%B7/">服务刚启动就 Full GC，要闹哪样？</a>
+              </h3>
+              
+              <time class="published" datetime='2019-07-23'>
+                2019-07-23
+              </time>
+            </header>
+            
+
+          </article>
+        
+          <article class="mini-post">
+            <header>
+              <h3>
+                <a href="https://andyyin.github.io/blog/%E7%AE%80%E5%8D%95%E7%9A%84-http-%E8%B0%83%E7%94%A8%E4%B8%BA%E4%BB%80%E4%B9%88%E6%97%B6%E5%BB%B6%E8%BF%99%E4%B9%88%E5%A4%A7/">简单的 HTTP 调用，为什么时延这么大？</a>
+              </h3>
+              
+              <time class="published" datetime='2019-07-14'>
+                2019-07-14
+              </time>
+            </header>
+            
+
+          </article>
+        
+          <article class="mini-post">
+            <header>
+              <h3>
+                <a href="https://andyyin.github.io/blog/jvm-%E6%BA%90%E7%A0%81%E8%A7%A3%E8%AF%BB%E4%B9%8B-cms-%E4%BD%95%E6%97%B6%E4%BC%9A%E8%BF%9B%E8%A1%8C-full-gc/">JVM 源码解读之 CMS 何时会进行 Full GC</a>
+              </h3>
+              
+              <time class="published" datetime='2019-06-15'>
+                2019-06-15
+              </time>
+            </header>
+            
+
+          </article>
+        
+      </div>
+
+      
+        <a href=
+          
+            /blog/
+          
+        class="button">更多</a>
+      
+    </div>
+  </section>
+
+  
+  
+  
+  
+  
+    <section id="categories">
+      <header>
+        <h3>
+          <a href="https://andyyin.github.io/categories/">分类</a>
+        </h3>
+      </header>
+        
+          
+        
+
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/java/">Java</a>
+                <span style="float:right;">15</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/gc/">GC</a>
+                <span style="float:right;">13</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/jvm/">JVM</a>
+                <span style="float:right;">11</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/http/">HTTP</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/rsocket/">RSocket</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/zookeeper/">Zookeeper</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/%E7%AE%A1%E7%90%86/">管理</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+        <p>
+          <article>
+            <header>
+              
+                <a href="https://andyyin.github.io/categories/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/">系统设计</a>
+                <span style="float:right;">1</span>
+              
+            </header>
+          </article>
+        </p>
+        
+    </section>
+  
+  
+
+  
+  
+    <section id="mini-bio">
+      <h3>关于我</h3>
+      <p>涤生，姓名殷琦，目前就职于某大型互联网公司基础架构部，主要负责微服务框架、服务治理、Serverless 相关工作。 《高可用可伸缩微服务架构：基于Dubbo、Spring Cloud和Service Mesh》的作者之一，《Knative 入门》图书翻译之一。 </p>
+      <a href="https://andyyin.github.io/about/" class="button">了解更多</a>
+    </section>
+  
+
+  
+  <section id="footer">
+    
+      <ul class="icons">
+        
+          
+    <li><a href="https://andyyin.github.io/index.xml" type="application/rss+xml" target="_blank" title="RSS" class="fa fa-rss"></a></li>
+
+
+        
+        
+  <li><a href="//github.com/andyyin" target="_blank" title="GitHub" class="fa fa-github"></a></li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <li><a href="https://andyyin.github.io/img/main/wechat.jpeg" target="_blank" title="WeChat" class="fa fa-weixin"></a></li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <li><a href="mailto:yyqqyinqi568@126.com" title="Email" class="fa fa-envelope"></a></li>
+
+
+      </ul>
+    
+    <p class="copyright">
+      
+        &copy; 2019
+        
+          涤生的博客
+        
+      .
+      Powered by <a href="https://andyyin.github.io/" target="_blank">涤生</a>
+    </p>
+  </section>
+</section>
+
+    </div>
+    <a id="back-to-top" href="#" class="fa fa-arrow-up fa-border fa-2x"></a>
+    
+
+    
+      
+    
+
+    
+      
+      
+      
+        <script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+        
+        
+        
+        <script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+        <script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+        <script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/css.min.js"></script>
+        <script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+      
+    
+    
+    
+      <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/skel/3.0.1/skel.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.1.25/jquery.fancybox.min.js"></script>
+      <script src="https://andyyin.github.io/js/util.js"></script>
+      <script src="https://andyyin.github.io/js/main.js"></script>
+      <script src="https://andyyin.github.io/js/backToTop.js"></script>
+    
+
+    
+      
+        
+      
+    
+
+    
+    <script>hljs.initHighlightingOnLoad();</script>
+      <script src="//yihui.name/js/math-code.js"></script>
+<script async
+src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+
+  </body>
+</html>
+
